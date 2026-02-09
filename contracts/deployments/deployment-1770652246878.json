@@ -1,0 +1,15 @@
+{
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployer": "0x9E2d2c2522a904EF07DC61F88D189833476D4A58",
+  "timestamp": "2026-02-09T15:50:46.878Z",
+  "gasUsed": "4151348",
+  "contracts": {
+    "ThreatRegistry": "0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9",
+    "GuardianVault": "0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9"
+  },
+  "verificationCommands": {
+    "ThreatRegistry": "npx hardhat verify --network bscTestnet 0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9 0x9E2d2c2522a904EF07DC61F88D189833476D4A58",
+    "GuardianVault": "npx hardhat verify --network bscTestnet 0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9 0x9E2d2c2522a904EF07DC61F88D189833476D4A58"
+  }
+}
