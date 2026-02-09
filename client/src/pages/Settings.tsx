@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import { getExplorerUrl } from '../config/contracts';
 
 export default function Settings() {
-  const { address, isConnected, disconnect } = useWallet();
+  const { isConnected, disconnect } = useWallet();
   const [notifications, setNotifications] = useState({
     threatDetected: true,
     tokensProtected: true,

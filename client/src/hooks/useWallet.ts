@@ -103,7 +103,7 @@ export function useWallet() {
     try {
       setLoading(true);
 
-      const accounts = await window.ethereum.request({
+       await window.ethereum.request({
         method: 'eth_requestAccounts',
       });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import ConnectWallet from '../components/wallet/ConnectWallet';
 import Card from '../components/ui/Card';
@@ -11,7 +11,7 @@ import {
   isValidAddress,
 } from '../utils/formatters';
 import { getThreatReports, reportThreat, upvoteThreat } from '../utils/contracts';
-import { ethers } from 'ethers';
+// import { ethers } from 'ethers';
 
 interface ThreatReport {
   reporter: string;
@@ -24,7 +24,7 @@ interface ThreatReport {
 }
 
 export default function Threats() {
-  const { address, isConnected, provider, signer } = useWallet();
+  const { isConnected, provider, signer } = useWallet();
   const [threats, setThreats] = useState<ThreatReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState('');
