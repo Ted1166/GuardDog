@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '../../hooks/useWallet';
-import { getGuardianVaultContract } from '../../utils/contracts';
+// import { getGuardianVaultContract } from '../../utils/contracts';
 import Card from '../ui/Card';
 import { formatBalance, formatCompact, formatUSD } from '../../utils/formatters';
 
@@ -43,6 +43,28 @@ export default function WalletStats({ address }: WalletStatsProps) {
 
     fetchStats();
   }, [address, provider]);
+
+  if (loading) {
+    return (
+      <>
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="hover:border-gray-700 transition-colors">
+            <div className="animate-pulse">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-8 w-8 bg-gray-700 rounded"></div>
+                <div className="h-6 w-12 bg-gray-700 rounded"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-24 bg-gray-700 rounded"></div>
+                <div className="h-8 w-32 bg-gray-700 rounded"></div>
+                <div className="h-3 w-20 bg-gray-700 rounded"></div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </>
+    );
+  }
 
   const statCards = [
     {
