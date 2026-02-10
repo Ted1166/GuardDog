@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useProtection } from '../hooks/useProtection';
+import { useRecentThreats } from '../hooks/useThreats';
 import ProtectionStatus from '../components/dashboard/ProtectionStatus';
 import WalletStats from '../components/dashboard/WalletStats';
 import ThreatAlerts from '../components/dashboard/ThreatAlerts';
@@ -9,13 +9,8 @@ import ConnectWallet from '../components/wallet/ConnectWallet';
 export default function Dashboard() {
   const { address, isConnected } = useWallet();
   const { isProtected, loading } = useProtection(address);
-  const [recentThreats, setRecentThreats] = useState<any[]>([]);
-
-  useEffect(() => {
-    // TODO: Fetch recent threats from API/contract
-    // For now using mock data
-    setRecentThreats([]);
-  }, [address]);
+  
+  const { recentThreats } = useRecentThreats([]);
 
   if (!isConnected) {
     return (
@@ -25,9 +20,9 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold text-white mb-2">
             Welcome to GuardDog
           </h1>
-          <p className="text-gray-400 text-lg mb-8 max-w-md">
+          <p className="text-gray-400 text-lg max-w-xl mx-auto leading-relaxed">
             AI-powered autonomous wallet security for BNB Chain.
-            Protect your assets 24/7.
+            Protect your assets always.
           </p>
           <ConnectWallet />
         </div>

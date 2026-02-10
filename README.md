@@ -2,7 +2,7 @@
 
 **AI-Powered Autonomous Wallet Security for BNB Chain**
 
-GuardDog is an AI security agent that monitors your wallets 24/7 and autonomously executes onchain protection when threats are detected. No manual intervention needed—your guardian dog bites back automatically.
+GuardDog is an AI security agent that monitors wallets and executes onchain protection when threats are detected. No manual intervention needed—your guardian dog bites back automatically.
 
 ## 🎯 Problem
 

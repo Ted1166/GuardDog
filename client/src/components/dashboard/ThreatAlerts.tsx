@@ -2,18 +2,19 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { formatRelativeTime, formatAddress, getThreatBadge } from '../../utils/formatters';
 
-interface Threat {
-  id: string;
-  contractAddress: string;
+interface ThreatReport {
+  reporter: string;
+  timestamp: bigint;
   threatLevel: number;
   threatType: string;
-  timestamp: number;
-  action: string;
-  status: 'blocked' | 'monitoring' | 'resolved';
+  evidence: string;
+  verified: boolean;
+  upvotes: bigint;
+  contractAddress?: string; 
 }
 
 interface ThreatAlertsProps {
-  threats: Threat[];
+  threats: ThreatReport[];
 }
 
 export default function ThreatAlerts({ threats }: ThreatAlertsProps) {
@@ -40,58 +41,62 @@ export default function ThreatAlerts({ threats }: ThreatAlertsProps) {
         <h2 className="text-xl font-semibold text-white">
           Recent Threat Alerts
         </h2>
-        <Badge variant="info">{threats.length} Active</Badge>
+        <Badge variant="info">{threats.length} Reports</Badge>
       </div>
 
       <div className="space-y-3">
-        {threats.map((threat) => {
+        {threats.map((threat, index) => {
           const threatBadge = getThreatBadge(threat.threatLevel);
           
           return (
             <div
-              key={threat.id}
+              key={`${threat.contractAddress || 'unknown'}-${index}`}
               className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <Badge className={threatBadge.className}>
-                    {threatBadge.label}
+                    {threatBadge.label} ({threat.threatLevel})
                   </Badge>
                   <span className="text-sm text-gray-400">
                     {threat.threatType}
                   </span>
+                  {threat.verified && (
+                    <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                      ✓ Verified
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs text-gray-500">
                   {formatRelativeTime(threat.timestamp)}
                 </span>
               </div>
 
+              {threat.evidence && (
+                <p className="text-gray-300 mb-3 text-sm">{threat.evidence}</p>
+              )}
+
               <div className="space-y-2">
+                {threat.contractAddress && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Contract:</span>
+                    <code className="text-white font-mono">
+                      {formatAddress(threat.contractAddress)}
+                    </code>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Contract:</span>
+                  <span className="text-gray-400">Reported by:</span>
                   <code className="text-white font-mono">
-                    {formatAddress(threat.contractAddress)}
+                    {formatAddress(threat.reporter)}
                   </code>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Action Taken:</span>
-                  <span className="text-white font-medium">{threat.action}</span>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Status:</span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      threat.status === 'blocked'
-                        ? 'bg-red-500/20 text-red-400'
-                        : threat.status === 'monitoring'
-                        ? 'bg-yellow-500/20 text-yellow-400'
-                        : 'bg-green-500/20 text-green-400'
-                    }`}
-                  >
-                    {threat.status.charAt(0).toUpperCase() +
-                      threat.status.slice(1)}
+                  <span className="text-gray-400">Community votes:</span>
+                  <span className="text-white">
+                    👍 {threat.upvotes.toString()}
                   </span>
                 </div>
               </div>

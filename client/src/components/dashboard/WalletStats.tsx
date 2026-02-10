@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '../../hooks/useWallet';
+import { getGuardianVaultContract } from '../../utils/contracts';
 import Card from '../ui/Card';
 import { formatBalance, formatCompact, formatUSD } from '../../utils/formatters';
 
@@ -8,24 +9,40 @@ interface WalletStatsProps {
 }
 
 export default function WalletStats({ address }: WalletStatsProps) {
-  const { balance } = useWallet();
+  const { balance, provider } = useWallet();
   const [stats, setStats] = useState({
     protectedTokens: 0,
     protectedValue: 0,
     threatsBlocked: 0,
-    activeDApps: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch actual stats from contract/API
-    // For now using mock data
-    setStats({
-      protectedTokens: 0,
-      protectedValue: 0,
-      threatsBlocked: 0,
-      activeDApps: 0,
-    });
-  }, [address]);
+    if (!provider || !address) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        
+        // TODO: Implement when we add events/subgraph
+        // For now, set to 0 - these will be populated as the system is used
+        setStats({
+          protectedTokens: 0,
+          protectedValue: 0,
+          threatsBlocked: 0,
+        });
+      } catch (error) {
+        console.error('Failed to fetch wallet stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [address, provider]);
 
   const statCards = [
     {
