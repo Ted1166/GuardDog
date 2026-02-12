@@ -65,37 +65,20 @@ Monitors liquidity patterns:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/guarddog.git
+git clone https://github.com/Ted1166/GuardDog.git
 cd guarddog
 
 # Install dependencies
 npm install
 
 # Configure environment
-cp .env.example .env
-# Edit .env with your keys
+.env
 
 # Compile contracts
 npx hardhat compile
 
-# Run tests
-npx hardhat test
-
 # Deploy to BSC Testnet
-npx hardhat run scripts/deploy.js --network bscTestnet
-```
-
-### Usage
-
-```bash
-# Start monitoring service
-npm run monitor
-
-# Connect wallet for protection
-npm run connect-wallet <YOUR_WALLET_ADDRESS>
-
-# Check protection status
-npm run status
+npm run deploy
 ```
 
 ## 📋 Smart Contracts
@@ -109,8 +92,6 @@ npm run status
 - Community-reported scams
 - AI-flagged contracts
 - Risk scoring
-
-Deployed on BSC Testnet: `[CONTRACT_ADDRESS]`
 
 ## 🧪 Testing & Reproduction
 
@@ -141,32 +122,6 @@ Simulates:
 - Historical exploit database
 - Real-time mempool monitoring
 
-## 🛣️ Roadmap
-
-**Phase 1 (Hackathon)** ✅
-- Auto-revoke unlimited approvals
-- Basic threat detection
-- BSC deployment
-
-**Phase 2**
-- Honeypot detector
-- Multi-chain support (opBNB)
-- Mobile app
-
-**Phase 3**
-- Rug pull predictor
-- Community threat reporting
-- Insurance integration
-
-## 🏆 Good Vibes Only: OpenClaw Edition
-
-**Track:** Agent (AI Agent × Onchain Actions)
-
-**Why GuardDog Wins:**
-- ✅ Truly autonomous - executes onchain without human approval
-- ✅ Solves real pain - BNB Chain scams happen daily
-- ✅ AI + blockchain fusion - ML detection → smart contract execution
-- ✅ Immediate value - protection starts on connection
 
 ## 📄 License
 
@@ -176,11 +131,6 @@ MIT License - see LICENSE file
 
 Issues and PRs welcome! See CONTRIBUTING.md
 
-## 📞 Contact
-
-- Discord: [#vibe-coding]
-- Twitter: [@GuardDogAI]
-- Email: team@guarddog.ai
 
 ---
 
