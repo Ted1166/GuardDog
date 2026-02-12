@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '../../hooks/useWallet';
-// import { getGuardianVaultContract } from '../../utils/contracts';
 import Card from '../ui/Card';
 import { formatBalance, formatCompact, formatUSD } from '../../utils/formatters';
 
@@ -27,8 +26,6 @@ export default function WalletStats({ address }: WalletStatsProps) {
       try {
         setLoading(true);
         
-        // TODO: Implement when we add events/subgraph
-        // For now, set to 0 - these will be populated as the system is used
         setStats({
           protectedTokens: 0,
           protectedValue: 0,
@@ -117,7 +114,7 @@ export default function WalletStats({ address }: WalletStatsProps) {
             <div className="text-xs text-gray-500">{stat.subtext}</div>
           </div>
 
-          {/* Progress Bar (optional) */}
+          {/* Progress Bar */}
           {stat.label === 'Protected Tokens' && (
             <div className="mt-4">
               <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">

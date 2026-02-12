@@ -11,7 +11,6 @@ import {
   isValidAddress,
 } from '../utils/formatters';
 import { getThreatReports, reportThreat, upvoteThreat } from '../utils/contracts';
-// import { ethers } from 'ethers';
 
 interface ThreatReport {
   reporter: string;

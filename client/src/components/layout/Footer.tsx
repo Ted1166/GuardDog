@@ -25,7 +25,7 @@ export default function Footer() {
                 🐦
               </a>
               <a
-                href="https://github.com/guarddog"
+                href="https://github.com/Ted1166/GuardDog"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"

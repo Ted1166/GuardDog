@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import Chatbot from './components/features/Chatbot';
 import Dashboard from './pages/Dashboard';
 import Protection from './pages/Protection';
 import Threats from './pages/Threats';
@@ -24,6 +25,9 @@ function App() {
         </main>
 
         <Footer />
+        
+        {/* Global AI Chatbot */}
+        <Chatbot />
       </div>
     </Router>
   );
