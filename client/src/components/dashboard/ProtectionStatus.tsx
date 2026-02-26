@@ -69,6 +69,14 @@ export default function ProtectionStatus({
           </div>
         </div>
 
+        {/* Agent Status Badge - NEW */}
+        {isProtected && (
+          <div className="px-4 py-2 rounded-full font-semibold text-sm bg-purple-500/20 text-purple-400 border-2 border-purple-500/50 flex items-center gap-2">
+            <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
+            🤖 Agent Monitoring
+          </div>
+        )}
+
         {/* Protection Details */}
         {isProtected && protectionStartTime && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
