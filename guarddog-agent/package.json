@@ -1,0 +1,24 @@
+{
+  "name": "guarddog-agent",
+  "version": "1.0.0",
+  "description": "GuardDog autonomous security agent running on OpenClaw",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "monitor": "tsx src/monitoring/wallet-monitor.ts",
+    "test": "tsx src/test-agent.ts"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.2",
+    "@anthropic-ai/sdk": "^0.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -55,7 +55,6 @@ export function useThreats(contractAddress?: string) {
   };
 }
 
-// Hook to get threat statistics for a contract
 export function useThreatStats(contractAddress?: string) {
   const { provider } = useWallet();
   const [stats, setStats] = useState({
@@ -87,7 +86,6 @@ export function useThreatStats(contractAddress?: string) {
   return { stats, loading };
 }
 
-// Hook to fetch recent threats across multiple contracts (for dashboard)
 export function useRecentThreats(contractAddresses: string[] = []) {
   const { provider } = useWallet();
   const [recentThreats, setRecentThreats] = useState<any[]>([]);
