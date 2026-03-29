@@ -23,11 +23,13 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="text-3xl group-hover:scale-110 transition-transform">
-              🐕‍🦺
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="GuardDog" 
+              className="w-12 h-12 md:w-14 md:h-14 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]"
+            />
             <div>
-              <h1 className="text-xl font-bold text-white">GuardDog</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-white font-display">GuardDog</h1>
               <p className="text-xs text-gray-400">AI Security</p>
             </div>
           </Link>

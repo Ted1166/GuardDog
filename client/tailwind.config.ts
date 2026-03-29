@@ -71,10 +71,10 @@ export default {
           green: "hsl(var(--archer-green))",
         },
       },
-      fontFamily: {
-        display: ["Orbitron", "sans-serif"],
-        body: ["Rajdhani", "sans-serif"],
-      },
+      // fontFamily: {
+      //   display: ["Orbitron", "sans-serif"],
+      //   body: ["Rajdhani", "sans-serif"],
+      // },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -107,6 +107,10 @@ export default {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "rift-gradient": "linear-gradient(135deg, hsl(260 60% 15%) 0%, hsl(230 25% 5%) 50%, hsl(200 40% 10%) 100%)",
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'Inter', 'sans-serif'],
       },
     },
   },
