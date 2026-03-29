@@ -1,7 +1,7 @@
 import hre from "hardhat";
 
 async function main() {
-  const privateKey = "f2620bd9f41c1a7a8e284bb9cb1bd6f35e80229151b3c062572ad5b0aa9f5017";
+  const privateKey = "";
   const wallet = new hre.ethers.Wallet(privateKey, hre.ethers.provider);
 
   const TestToken = await hre.ethers.getContractFactory("TestToken", wallet);

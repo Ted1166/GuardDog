@@ -16,33 +16,30 @@ export class GuardDogAgent {
   private startTime: number;
 
   constructor() {
-    // Initialize blockchain service
     this.blockchain = new BlockchainService(
       process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545',
       process.env.GUARDIAN_PRIVATE_KEY || '',
       (process.env.NETWORK as 'bscTestnet' | 'bscMainnet') || 'bscTestnet'
     );
 
-    // Initialize wallet monitor
     this.monitor = new WalletMonitor(
       this.blockchain,
       parseInt(process.env.THREAT_THRESHOLD || '75'),
       process.env.MAX_PROTECTION_AMOUNT || '1000'
     );
 
-    // Initialize messaging
     this.messaging = new OpenClawMessaging(
       process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789',
       process.env.OPENCLAW_GATEWAY_TOKEN || '',
       {
         telegramEnabled: process.env.TELEGRAM_ENABLED === 'true',
         telegramChatId: process.env.TELEGRAM_CHAT_ID,
+        telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
         whatsappEnabled: process.env.WHATSAPP_ENABLED === 'true',
         whatsappPhone: process.env.WHATSAPP_PHONE,
       }
     );
 
-    // Initialize Moltbook
     this.moltbook = new MoltbookService(
       process.env.MOLTBOOK_API_URL || 'https://api.moltbook.com',
       process.env.MOLTBOOK_API_KEY || '',
@@ -57,7 +54,6 @@ export class GuardDogAgent {
   async initialize(): Promise<void> {
     console.log('\n🐕 GuardDog Agent Initializing...\n');
 
-    // Verify guardian role
     const guardianAddress = await this.blockchain.getGuardianAddress();
     console.log(`Guardian Address: ${guardianAddress}`);
 
@@ -67,7 +63,6 @@ export class GuardDogAgent {
     }
     console.log('✅ Guardian role verified\n');
 
-    // Check guardian balance
     const balance = await this.blockchain.getBalance();
     console.log(`Guardian Balance: ${ethers.formatEther(balance)} BNB`);
     
@@ -93,19 +88,16 @@ export class GuardDogAgent {
     console.log(`${'='.repeat(60)}\n`);
 
     try {
-      // Scan all monitored wallets
       const threats = await this.monitor.scanAllWallets();
 
       let totalThreats = 0;
       let totalProtections = 0;
 
-      // Process threats for each wallet
       for (const [walletAddress, detections] of threats) {
         totalThreats += detections.length;
 
         console.log(`\n🚨 Processing ${detections.length} threats for wallet ${walletAddress}`);
 
-        // Send threat detection alerts
         for (const detection of detections) {
           await this.messaging.sendAlert({
             type: 'threat_detected',
@@ -124,7 +116,6 @@ export class GuardDogAgent {
           );
         }
 
-        // Execute batch protection if threats are protectable
         const protectableDetections = detections.filter(d => d.shouldProtect);
         
         if (protectableDetections.length > 0) {
@@ -135,7 +126,6 @@ export class GuardDogAgent {
           if (txHash) {
             totalProtections += protectableDetections.length;
 
-            // Calculate total amount protected
             const totalAmount = protectableDetections.reduce((sum, d) => sum + d.balance, 0n);
 
             await this.messaging.sendAlert({
@@ -148,7 +138,7 @@ export class GuardDogAgent {
 
             await this.moltbook.postProtectionExecution(
               walletAddress,
-              protectableDetections[0].tokenAddress, // First token for metadata
+              protectableDetections[0].tokenAddress,
               ethers.formatEther(totalAmount),
               txHash
             );
@@ -156,7 +146,6 @@ export class GuardDogAgent {
         }
       }
 
-      // Post scan completion to Moltbook
       const stats = await this.monitor.getMonitoringStats();
       await this.moltbook.postScanComplete(stats.totalWallets, totalThreats);
 
@@ -194,22 +183,19 @@ export class GuardDogAgent {
 
     this.isRunning = true;
 
-    // Run initial scan immediately
     await this.runScanCycle();
 
-    // Schedule recurring scans
     this.intervalHandle = setInterval(async () => {
       await this.runScanCycle();
     }, this.monitorInterval);
 
-    // Post system status every 6 hours
     setInterval(async () => {
       const stats = await this.monitor.getMonitoringStats();
       const uptime = this.getUptime();
       
       await this.moltbook.postSystemStatus(
         stats.totalWallets,
-        'TBD', // Could calculate total protected value
+        'TBD',
         uptime
       );
     }, 6 * 60 * 60 * 1000);
@@ -251,15 +237,15 @@ export class GuardDogAgent {
   }
 }
 
-// CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
   const agent = new GuardDogAgent();
+  const exampleWallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
+  const exampleTokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
+  console.log(`🔍 Debug: Monitoring ${exampleWallets.length} wallets with ${exampleTokens.length} tokens:`, exampleTokens);
 
   try {
     await agent.initialize();
 
-    // Example: Add wallets to monitor
-    // Replace with actual wallet addresses from your database or config
     const exampleWallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
     const exampleTokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
 
@@ -272,10 +258,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('   Add wallets to .env file or use the API to add them\n');
     }
 
-    // Start autonomous monitoring
     await agent.start();
 
-    // Handle graceful shutdown
     process.on('SIGINT', () => {
       console.log('\n\n🛑 Received SIGINT, shutting down gracefully...');
       agent.stop();

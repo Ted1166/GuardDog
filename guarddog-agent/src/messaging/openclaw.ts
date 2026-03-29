@@ -10,13 +10,14 @@ export interface AlertMessage {
   timestamp: number;
 }
 
+
 export class OpenClawMessaging {
+  private telegramEnabled: boolean;
+  private telegramBotToken?: string;
+  private telegramChatId?: string;
+
   private gatewayUrl: string;
   private gatewayToken: string;
-  private telegramEnabled: boolean;
-  private whatsappEnabled: boolean;
-  private telegramChatId?: string;
-  private whatsappPhone?: string;
 
   constructor(
     gatewayUrl: string,
@@ -24,6 +25,7 @@ export class OpenClawMessaging {
     config: {
       telegramEnabled?: boolean;
       telegramChatId?: string;
+      telegramBotToken?: string;
       whatsappEnabled?: boolean;
       whatsappPhone?: string;
     } = {}
@@ -31,34 +33,27 @@ export class OpenClawMessaging {
     this.gatewayUrl = gatewayUrl;
     this.gatewayToken = gatewayToken;
     this.telegramEnabled = config.telegramEnabled || false;
-    this.whatsappEnabled = config.whatsappEnabled || false;
     this.telegramChatId = config.telegramChatId;
-    this.whatsappPhone = config.whatsappPhone;
+    this.telegramBotToken = config.telegramBotToken;
   }
 
   async sendAlert(alert: AlertMessage): Promise<void> {
     const message = this.formatAlertMessage(alert);
 
-    const promises: Promise<void>[] = [];
-
-    if (this.telegramEnabled && this.telegramChatId) {
-      promises.push(this.sendToTelegram(message));
-    }
-
-    if (this.whatsappEnabled && this.whatsappPhone) {
-      promises.push(this.sendToWhatsApp(message));
-    }
-
-    if (promises.length === 0) {
-      console.log('📱 No messaging channels enabled. Alert not sent.');
-      console.log(`   Message: ${message}`);
-      return;
-    }
-
-    try {
-      await Promise.allSettled(promises);
-    } catch (error) {
-      console.error('Failed to send alerts:', error);
+    if (this.telegramEnabled) {
+      if (!this.telegramBotToken) {
+        console.warn('⚠️  TELEGRAM_ENABLED=true but TELEGRAM_BOT_TOKEN is missing. Skipping alert.');
+        console.log(`   Message would have been: ${message.substring(0, 80)}...`);
+        return;
+      }
+      if (!this.telegramChatId) {
+        console.warn('⚠️  TELEGRAM_ENABLED=true but TELEGRAM_CHAT_ID is missing. Skipping alert.');
+        return;
+      }
+      await this.sendToTelegram(message);
+    } else {
+      console.log('📱 Messaging disabled. Alert:');
+      console.log(`   ${message.substring(0, 120)}`);
     }
   }
 
@@ -74,15 +69,12 @@ export class OpenClawMessaging {
     if (alert.walletAddress) {
       message += `\nWallet: \`${alert.walletAddress.substring(0, 10)}...${alert.walletAddress.substring(38)}\``;
     }
-
     if (alert.tokenAddress) {
       message += `\nToken: \`${alert.tokenAddress.substring(0, 10)}...${alert.tokenAddress.substring(38)}\``;
     }
-
     if (alert.threatLevel !== undefined) {
       message += `\nThreat Level: ${alert.threatLevel}/100`;
     }
-
     if (alert.txHash) {
       message += `\n\nTransaction: \`${alert.txHash}\``;
       message += `\nView: https://testnet.bscscan.com/tx/${alert.txHash}`;
@@ -93,55 +85,36 @@ export class OpenClawMessaging {
 
   private getEmojiForType(type: AlertMessage['type']): string {
     switch (type) {
-      case 'threat_detected':
-        return '🚨';
-      case 'protection_executed':
-        return '🛡️';
-      case 'scan_complete':
-        return '✅';
-      case 'system_status':
-        return 'ℹ️';
-      default:
-        return '📢';
+      case 'threat_detected':    return '🚨';
+      case 'protection_executed': return '🛡️';
+      case 'scan_complete':      return '✅';
+      case 'system_status':      return 'ℹ️';
+      default:                   return '📢';
     }
   }
+
 
   private async sendToTelegram(message: string): Promise<void> {
     try {
-      await axios.post(`${this.gatewayUrl}/api/send`, {
-        channel: 'telegram',
-        chatId: this.telegramChatId,
-        message,
-        parseMode: 'Markdown',
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.gatewayToken}`,
-          'Content-Type': 'application/json',
-        },
+      const url = `https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`;
+      await axios.post(url, {
+        chat_id: this.telegramChatId,
+        text: message,
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
       });
-
-      console.log('📱 Alert sent to Telegram');
+      console.log('📱 Alert sent to Telegram ✅');
     } catch (error: any) {
-      console.error('Failed to send Telegram message:', error.message);
-    }
-  }
-
-  private async sendToWhatsApp(message: string): Promise<void> {
-    try {
-      await axios.post(`${this.gatewayUrl}/api/send`, {
-        channel: 'whatsapp',
-        phone: this.whatsappPhone,
-        message,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.gatewayToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('📱 Alert sent to WhatsApp');
-    } catch (error: any) {
-      console.error('Failed to send WhatsApp message:', error.message);
+      const errMsg = error.response?.data?.description || error.message;
+      console.error(`❌ Failed to send Telegram message: ${errMsg}`);
+      // Common mistakes:
+      if (errMsg?.includes('bot was blocked')) {
+        console.error('   → User blocked the bot. Send /start to your bot first.');
+      } else if (errMsg?.includes('chat not found')) {
+        console.error('   → Invalid TELEGRAM_CHAT_ID. Get it from @userinfobot.');
+      } else if (errMsg?.includes('Unauthorized')) {
+        console.error('   → Invalid TELEGRAM_BOT_TOKEN. Check @BotFather.');
+      }
     }
   }
 }
