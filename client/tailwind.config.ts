@@ -97,12 +97,28 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        fadeOut: {
+          "0%": { opacity: "1" },
+          "80%": { opacity: "1" },
+          "100%": { opacity: "0", visibility: "hidden" },
+        },
+        loadingBar: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         shimmer: "shimmer 3s linear infinite",
+        float: "float 3s ease-in-out infinite",
+        fadeOut: "fadeOut 3s ease-in-out forwards",
+        loadingBar: "loadingBar 2s ease-in-out infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
