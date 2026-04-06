@@ -3,6 +3,7 @@ import { BlockchainService } from './core/blockchain.js';
 import { WalletMonitor } from './monitoring/wallet-monitor.js';
 import { OpenClawMessaging } from './messaging/openclaw.js';
 import { MoltbookService } from './messaging/moltbook.js';
+import { createServer } from './api/server.js';
 import { ethers } from 'ethers';
 
 export class GuardDogAgent {
@@ -65,7 +66,7 @@ export class GuardDogAgent {
 
     const balance = await this.blockchain.getBalance();
     console.log(`Guardian Balance: ${ethers.formatEther(balance)} BNB`);
-    
+
     if (balance < ethers.parseEther('0.01')) {
       console.warn('⚠️  WARNING: Guardian balance is low. Please fund for gas fees.\n');
     }
@@ -95,7 +96,6 @@ export class GuardDogAgent {
 
       for (const [walletAddress, detections] of threats) {
         totalThreats += detections.length;
-
         console.log(`\n🚨 Processing ${detections.length} threats for wallet ${walletAddress}`);
 
         for (const detection of detections) {
@@ -117,15 +117,14 @@ export class GuardDogAgent {
         }
 
         const protectableDetections = detections.filter(d => d.shouldProtect);
-        
+
         if (protectableDetections.length > 0) {
           console.log(`\n🛡️  Executing batch protection for ${protectableDetections.length} tokens...`);
-          
+
           const txHash = await this.monitor.batchExecuteProtection(walletAddress, protectableDetections);
 
           if (txHash) {
             totalProtections += protectableDetections.length;
-
             const totalAmount = protectableDetections.reduce((sum, d) => sum + d.balance, 0n);
 
             await this.messaging.sendAlert({
@@ -164,7 +163,7 @@ export class GuardDogAgent {
 
     } catch (error) {
       console.error('\n❌ Error during scan cycle:', error);
-      
+
       await this.messaging.sendAlert({
         type: 'system_status',
         message: `Error during scan cycle: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -180,7 +179,6 @@ export class GuardDogAgent {
     }
 
     console.log(`\n🚀 Starting autonomous monitoring (interval: ${this.monitorInterval / 60000} minutes)...\n`);
-
     this.isRunning = true;
 
     await this.runScanCycle();
@@ -189,30 +187,21 @@ export class GuardDogAgent {
       await this.runScanCycle();
     }, this.monitorInterval);
 
+    // Post system status every 6 hours
     setInterval(async () => {
       const stats = await this.monitor.getMonitoringStats();
-      const uptime = this.getUptime();
-      
       await this.moltbook.postSystemStatus(
         stats.totalWallets,
         'TBD',
-        uptime
+        this.getUptime()
       );
     }, 6 * 60 * 60 * 1000);
   }
 
   stop(): void {
-    if (!this.isRunning) {
-      console.log('⚠️  Agent is not running');
-      return;
-    }
-
+    if (!this.isRunning) return;
     console.log('\n🛑 Stopping autonomous monitoring...\n');
-
-    if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
-    }
-
+    if (this.intervalHandle) clearInterval(this.intervalHandle);
     this.isRunning = false;
     console.log('✅ Agent stopped\n');
   }
@@ -237,40 +226,33 @@ export class GuardDogAgent {
   }
 }
 
+// ── Main entry point ──────────────────────────────────────────────────
 if (import.meta.url === `file://${process.argv[1]}`) {
   const agent = new GuardDogAgent();
-  const exampleWallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
-  const exampleTokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
-  console.log(`🔍 Debug: Monitoring ${exampleWallets.length} wallets with ${exampleTokens.length} tokens:`, exampleTokens);
+
+  // Boot HTTP API server first (so Render health checks pass immediately)
+  createServer(agent);
 
   try {
     await agent.initialize();
 
-    const exampleWallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
-    const exampleTokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
+    const wallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
+    const tokens  = (process.env.MONITORED_TOKENS  || '').split(',').filter(Boolean);
 
-    if (exampleWallets.length > 0) {
-      for (const wallet of exampleWallets) {
-        agent.addWallet(wallet.trim(), exampleTokens);
+    console.log(`🔍 Monitoring ${wallets.length} wallet(s) with ${tokens.length} token(s)`);
+
+    if (wallets.length > 0) {
+      for (const wallet of wallets) {
+        agent.addWallet(wallet.trim(), tokens.map(t => t.trim()));
       }
     } else {
-      console.log('⚠️  No wallets configured in MONITORED_WALLETS environment variable');
-      console.log('   Add wallets to .env file or use the API to add them\n');
+      console.log('⚠️  No wallets in MONITORED_WALLETS — add via API or .env\n');
     }
 
     await agent.start();
 
-    process.on('SIGINT', () => {
-      console.log('\n\n🛑 Received SIGINT, shutting down gracefully...');
-      agent.stop();
-      process.exit(0);
-    });
-
-    process.on('SIGTERM', () => {
-      console.log('\n\n🛑 Received SIGTERM, shutting down gracefully...');
-      agent.stop();
-      process.exit(0);
-    });
+    process.on('SIGINT',  () => { agent.stop(); process.exit(0); });
+    process.on('SIGTERM', () => { agent.stop(); process.exit(0); });
 
   } catch (error) {
     console.error('\n❌ Fatal error:', error);

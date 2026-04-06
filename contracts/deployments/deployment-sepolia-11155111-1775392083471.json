@@ -1,0 +1,12 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0x2ec236a1e06715712749BCA3c7D242c3b9caE6D7",
+  "timestamp": "2026-04-05T12:28:03.470Z",
+  "gasUsed": "4151348",
+  "explorer": "https://sepolia.etherscan.io",
+  "contracts": {
+    "ThreatRegistry": "0xf033A7Ff995a2A87C2ba4748bfF7626D6482Da64",
+    "GuardianVault": "0x9B05c7A71a02F39B18e979E4F84b784aFed3c284"
+  }
+}
