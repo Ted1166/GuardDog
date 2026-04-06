@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { GUARDIAN_VAULT_ABI, THREAT_REGISTRY_ABI, ERC20_ABI, getContractAddresses } from "../config/contracts";
+import { GUARDIAN_VAULT_ABI, THREAT_REGISTRY_ABI, ERC20_ABI, getContractAddresses } from "../config/contracts.js";
 
 export interface ThreatReport {
   reporter: string;

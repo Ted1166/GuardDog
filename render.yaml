@@ -1,0 +1,69 @@
+services:
+  - type: web
+    name: guarddog-agent
+    runtime: node
+    rootDir: guarddog-agent
+    region: oregon                # Closest free-tier region
+    plan: free                    # Upgrade to starter for always-on
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+
+    envVars:
+      # ── Network ───────────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: BSC_RPC_URL
+        value: https://data-seed-prebsc-1-s1.binance.org:8545
+      - key: NETWORK
+        value: bscTestnet
+
+      # ── Contracts ─────────────────────────────────────────────────
+      - key: GUARDIAN_VAULT_ADDRESS
+        value: 0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9
+      - key: THREAT_REGISTRY_ADDRESS
+        value: 0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9
+
+      # ── Agent config ──────────────────────────────────────────────
+      - key: MONITOR_INTERVAL_MINUTES
+        value: "5"
+      - key: THREAT_THRESHOLD
+        value: "75"
+      - key: MAX_PROTECTION_AMOUNT
+        value: "2000000"
+
+      # ── Secrets (set manually in Render dashboard) ─────────────────
+      - key: GUARDIAN_PRIVATE_KEY
+        sync: false               # Set in Render dashboard — never commit!
+      - key: MONITORED_WALLETS
+        sync: false
+      - key: MONITORED_TOKENS
+        sync: false
+
+      # ── Telegram ──────────────────────────────────────────────────
+      - key: TELEGRAM_ENABLED
+        value: "true"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+
+      # ── Moltbook ──────────────────────────────────────────────────
+      - key: MOLTBOOK_ENABLED
+        value: "true"
+      - key: MOLTBOOK_API_URL
+        value: https://www.moltbook.com
+      - key: MOLTBOOK_SUBMOLT
+        value: openclaw-explorers
+      - key: MOLTBOOK_API_KEY
+        sync: false
+
+      # ── OpenClaw (optional on Render) ─────────────────────────────
+      - key: OPENCLAW_GATEWAY_URL
+        value: ""
+      - key: OPENCLAW_GATEWAY_TOKEN
+        value: ""
+
+      # ── AI ────────────────────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
