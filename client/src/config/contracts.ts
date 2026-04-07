@@ -12,8 +12,8 @@ export const CONTRACT_ADDRESSES = {
   },
   // opBNB Testnet (deploying)
   opBNBTestnet: {
-    GuardianVault:  '',
-    ThreatRegistry: '',
+    GuardianVault:  '0x6994b39F3bCD0D33029EfD95d15F72310227aD78',
+    ThreatRegistry: '0xBB4Bd19224bB19f36C1BD97aE8014c0f51D0c383',
   },
   // opBNB Mainnet
   opBNBMainnet: {
@@ -92,6 +92,7 @@ export const NETWORKS = {
 
 export type NetworkKey = keyof typeof NETWORKS;
 export const DEFAULT_NETWORK: NetworkKey = 'bscTestnet';
+export const SUPPORTED_NETWORKS: NetworkKey[] = ['bscTestnet', 'opBNBTestnet', 'baseSepolia', 'sepolia'];
 
 // Chain ID → network key map (for auto-detection from MetaMask)
 export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {

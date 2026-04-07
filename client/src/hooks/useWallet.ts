@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { getNetworkConfig, DEFAULT_NETWORK } from '../config/contracts';
+import {
+  getNetworkConfig,
+  getNetworkFromChainId,
+  DEFAULT_NETWORK,
+  SUPPORTED_NETWORKS,
+  type NetworkKey,
+} from '../config/contracts';
 
 declare global {
   interface Window {
@@ -120,8 +126,8 @@ export function useWallet() {
       setBalance(balance);
       setIsConnected(true);
 
-      const targetNetwork = getNetworkConfig(DEFAULT_NETWORK);
-      if (network.chainId.toString() !== parseInt(targetNetwork.chainId).toString()) {
+      const detectedNetwork = getNetworkFromChainId(network.chainId.toString());
+      if (!SUPPORTED_NETWORKS.includes(detectedNetwork)) {
         await switchNetwork();
       }
     } catch (error: any) {
@@ -142,10 +148,10 @@ export function useWallet() {
     setBalance(0n);
   }, []);
 
-  const switchNetwork = useCallback(async () => {
+  const switchNetwork = useCallback(async (targetKey: NetworkKey = DEFAULT_NETWORK) => {
     if (!window.ethereum) return;
 
-    const targetNetwork = getNetworkConfig(DEFAULT_NETWORK);
+    const targetNetwork = getNetworkConfig(targetKey);
 
     try {
       await window.ethereum.request({
@@ -153,8 +159,7 @@ export function useWallet() {
         params: [{ chainId: targetNetwork.chainId }],
       });
     } catch (error: any) {
-
-        if (error.code === 4902) {
+      if (error.code === 4902) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
@@ -179,9 +184,11 @@ export function useWallet() {
 
   const isCorrectNetwork = useCallback(() => {
     if (!chainId) return false;
-    const targetNetwork = getNetworkConfig(DEFAULT_NETWORK);
-    return chainId === parseInt(targetNetwork.chainId).toString();
+    const network = getNetworkFromChainId(chainId);
+    return SUPPORTED_NETWORKS.includes(network);
   }, [chainId]);
+
+  const currentNetwork = chainId ? getNetworkFromChainId(chainId) : DEFAULT_NETWORK;
 
   return {
     address,
@@ -195,5 +202,6 @@ export function useWallet() {
     disconnect,
     switchNetwork,
     isCorrectNetwork: isCorrectNetwork(),
+    currentNetwork,
   };
 }

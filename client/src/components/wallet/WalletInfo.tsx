@@ -1,9 +1,10 @@
 import { useWallet } from '../../hooks/useWallet';
 import { formatAddress, formatBalance, copyToClipboard } from '../../utils/formatters';
+import { NETWORKS } from '../../config/contracts';
 import { useState } from 'react';
 
 export default function WalletInfo() {
-  const { address, balance, chainId } = useWallet();
+  const { address, balance, chainId, currentNetwork } = useWallet();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -39,7 +40,7 @@ export default function WalletInfo() {
         <div className="text-sm text-gray-400 mb-2">Balance</div>
         <div className="flex items-center justify-between">
           <div className="text-white font-semibold text-lg">
-            {formatBalance(balance)} BNB
+            {formatBalance(balance)} {NETWORKS[currentNetwork].nativeCurrency.symbol}
           </div>
           <div className="text-gray-400 text-sm">
             Chain ID: {chainId}
@@ -50,7 +51,7 @@ export default function WalletInfo() {
       {/* Network Badge */}
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        <span className="text-sm text-gray-400">Connected to BSC Testnet</span>
+        <span className="text-sm text-gray-400">Connected to {NETWORKS[currentNetwork].chainName}</span>
       </div>
     </div>
   );

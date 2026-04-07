@@ -4,7 +4,7 @@ import ConnectWallet from '../components/wallet/ConnectWallet';
 import WalletInfo from '../components/wallet/WalletInfo';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { getExplorerUrl } from '../config/contracts';
+import { getExplorerUrl, CONTRACT_ADDRESSES, NETWORKS, SUPPORTED_NETWORKS, type NetworkKey } from '../config/contracts';
 
 // localStorage keys
 const LS_NOTIFICATIONS = 'guarddog_notifications';
@@ -27,7 +27,7 @@ function loadNotifications() {
 }
 
 export default function Settings() {
-  const { isConnected, disconnect } = useWallet();
+  const { isConnected, disconnect, currentNetwork, chainId, switchNetwork } = useWallet();
 
   // Initialise from localStorage so toggles survive refresh
   const [notifications, setNotifications] = useState(loadNotifications);
@@ -258,41 +258,54 @@ export default function Settings() {
         {/* Network */}
         <Card>
           <h2 className="text-xl font-semibold text-white mb-4">Network</h2>
-          <div className="bg-gray-800/50 rounded-lg p-4">
+          <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400">Current Network:</span>
-              <span className="text-white font-medium">BSC Testnet</span>
+              <span className="text-white font-medium">{NETWORKS[currentNetwork].chainName}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Chain ID:</span>
-              <span className="text-white font-medium">97</span>
+              <span className="text-white font-medium">{chainId || parseInt(NETWORKS[currentNetwork].chainId).toString()}</span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-3">
-            Multichain support (opBNB, Base) coming in Q2 2026.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-400 mb-2">Switch Network</p>
+            {SUPPORTED_NETWORKS.map((key) => (
+              <button
+                key={key}
+                onClick={() => switchNetwork(key as NetworkKey)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-colors ${
+                  currentNetwork === key
+                    ? 'border-blue-500 bg-blue-500/10 text-blue-400'
+                    : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-gray-600 hover:bg-gray-800'
+                }`}
+              >
+                <span>{NETWORKS[key].chainName}</span>
+                {currentNetwork === key && <span className="text-xs">✓ Active</span>}
+              </button>
+            ))}
+          </div>
         </Card>
 
         {/* Contract Addresses */}
         <Card>
           <h2 className="text-xl font-semibold text-white mb-4">Contract Addresses</h2>
           <div className="space-y-3">
-            {[
-              { label: 'GuardianVault', address: '0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9' },
-              { label: 'ThreatRegistry', address: '0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9' },
-            ].map(({ label, address }) => (
+            {(Object.entries(CONTRACT_ADDRESSES[currentNetwork]) as [string, string][]).map(([label, address]) => (
               <div key={label} className="bg-gray-800/50 rounded-lg p-4">
                 <div className="text-sm text-gray-400 mb-1">{label}</div>
                 <div className="flex items-center justify-between gap-4">
-                  <code className="text-white text-sm break-all">{address}</code>
-                  <a
-                    href={getExplorerUrl('bscTestnet', 'address', address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 text-sm shrink-0"
-                  >
-                    View →
-                  </a>
+                  <code className="text-white text-sm break-all">{address || 'Not deployed'}</code>
+                  {address && (
+                    <a
+                      href={getExplorerUrl(currentNetwork, 'address', address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 text-sm shrink-0"
+                    >
+                      View →
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -309,7 +322,7 @@ export default function Settings() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Network:</span>
-              <span className="text-white">BNB Smart Chain</span>
+              <span className="text-white">{NETWORKS[currentNetwork].chainName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">License:</span>
