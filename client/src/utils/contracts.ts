@@ -3,11 +3,13 @@ import {
   GUARDIAN_VAULT_ABI,
   THREAT_REGISTRY_ABI,
   getContractAddress,
+  type NetworkKey,
+  DEFAULT_NETWORK,
 } from '../config/contracts';
 
 export function getGuardianVaultContract(
   signerOrProvider: ethers.Signer | ethers.Provider,
-  network: 'bscTestnet' | 'bscMainnet' = 'bscTestnet'
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
   const address = getContractAddress('GuardianVault', network);
   return new ethers.Contract(address, GUARDIAN_VAULT_ABI, signerOrProvider);
@@ -15,64 +17,69 @@ export function getGuardianVaultContract(
 
 export function getThreatRegistryContract(
   signerOrProvider: ethers.Signer | ethers.Provider,
-  network: 'bscTestnet' | 'bscMainnet' = 'bscTestnet'
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
   const address = getContractAddress('ThreatRegistry', network);
   return new ethers.Contract(address, THREAT_REGISTRY_ABI, signerOrProvider);
 }
 
-export async function enableProtection(signer: ethers.Signer) {
-  const contract = getGuardianVaultContract(signer);
+export async function enableProtection(signer: ethers.Signer, network: NetworkKey = DEFAULT_NETWORK) {
+  const contract = getGuardianVaultContract(signer, network);
   const tx = await contract.enableProtection();
   return tx.wait();
 }
 
-export async function disableProtection(signer: ethers.Signer) {
-  const contract = getGuardianVaultContract(signer);
+export async function disableProtection(signer: ethers.Signer, network: NetworkKey = DEFAULT_NETWORK) {
+  const contract = getGuardianVaultContract(signer, network);
   const tx = await contract.disableProtection();
   return tx.wait();
 }
 
 export async function checkProtectionStatus(
   address: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<boolean> {
-  const contract = getGuardianVaultContract(provider);
+  const contract = getGuardianVaultContract(provider, network);
   return contract.isWalletProtected(address);
 }
 
 export async function getProtectionDuration(
   address: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<bigint> {
-  const contract = getGuardianVaultContract(provider);
+  const contract = getGuardianVaultContract(provider, network);
   return contract.getProtectionDuration(address);
 }
 
 export async function getProtectedBalance(
   walletAddress: string,
   tokenAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<bigint> {
-  const contract = getGuardianVaultContract(provider);
+  const contract = getGuardianVaultContract(provider, network);
   return contract.getProtectedBalance(walletAddress, tokenAddress);
 }
 
 export async function withdrawTokens(
   signer: ethers.Signer,
   tokenAddress: string,
-  amount: bigint
+  amount: bigint,
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getGuardianVaultContract(signer);
+  const contract = getGuardianVaultContract(signer, network);
   const tx = await contract.withdraw(tokenAddress, amount);
   return tx.wait();
 }
 
 export async function withdrawAllTokens(
   signer: ethers.Signer,
-  tokenAddress: string
+  tokenAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getGuardianVaultContract(signer);
+  const contract = getGuardianVaultContract(signer, network);
   const tx = await contract.withdrawAll(tokenAddress);
   return tx.wait();
 }
@@ -82,9 +89,10 @@ export async function reportThreat(
   contractAddress: string,
   threatLevel: number,
   threatType: string,
-  evidence: string
+  evidence: string,
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getThreatRegistryContract(signer);
+  const contract = getThreatRegistryContract(signer, network);
   const tx = await contract.reportThreat(
     contractAddress,
     threatLevel,
@@ -97,42 +105,46 @@ export async function reportThreat(
 export async function upvoteThreat(
   signer: ethers.Signer,
   contractAddress: string,
-  reportIndex: number
+  reportIndex: number,
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getThreatRegistryContract(signer);
+  const contract = getThreatRegistryContract(signer, network);
   const tx = await contract.upvoteReport(contractAddress, reportIndex);
   return tx.wait();
 }
 
 export async function getThreatReports(
   contractAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getThreatRegistryContract(provider);
+  const contract = getThreatRegistryContract(provider, network);
   return contract.getAllReports(contractAddress);
 }
 
 export async function getThreatScore(
   contractAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<number> {
-  const contract = getThreatRegistryContract(provider);
+  const contract = getThreatRegistryContract(provider, network);
   return contract.getAggregateThreatScore(contractAddress);
 }
 
 export async function getThreatStats(
   contractAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<{
   totalReports: bigint;
   verifiedReports: bigint;
   avgThreatLevel: number;
   totalUpvotes: bigint;
 }> {
-  const contract = getThreatRegistryContract(provider);
+  const contract = getThreatRegistryContract(provider, network);
   const [totalReports, verifiedReports, avgThreatLevel, totalUpvotes] =
     await contract.getThreatStats(contractAddress);
-  
+
   return {
     totalReports,
     verifiedReports,
@@ -143,9 +155,10 @@ export async function getThreatStats(
 
 export async function isVerifiedThreat(
   contractAddress: string,
-  provider: ethers.Provider
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
 ): Promise<boolean> {
-  const contract = getThreatRegistryContract(provider);
+  const contract = getThreatRegistryContract(provider, network);
   return contract.isVerifiedThreat(contractAddress);
 }
 

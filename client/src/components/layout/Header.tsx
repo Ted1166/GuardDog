@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useWallet } from '../../hooks/useWallet';
 import { formatAddress } from '../../utils/formatters';
+import { NETWORKS } from '../../config/contracts';
 
 export default function Header() {
   const location = useLocation();
-  const { address, isConnected, connect } = useWallet();
+  const { address, isConnected, connect, currentNetwork } = useWallet();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -59,7 +60,7 @@ export default function Header() {
                 {/* Network Indicator */}
                 <div className="hidden sm:flex items-center gap-2 bg-gray-800 px-3 py-2 rounded-lg">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-gray-300">BSC Testnet</span>
+                  <span className="text-sm text-gray-300">{NETWORKS[currentNetwork].chainName}</span>
                 </div>
 
                 {/* Address */}

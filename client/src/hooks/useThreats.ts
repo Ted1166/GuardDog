@@ -13,7 +13,7 @@ export interface ThreatReport {
 }
 
 export function useThreats(contractAddress?: string) {
-  const { provider } = useWallet();
+  const { provider, currentNetwork } = useWallet();
   const [threats, setThreats] = useState<ThreatReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -28,7 +28,7 @@ export function useThreats(contractAddress?: string) {
       setLoading(true);
       setError('');
 
-      const reports = await getThreatReports(contractAddress, provider);
+      const reports = await getThreatReports(contractAddress, provider, currentNetwork);
       setThreats(reports);
     } catch (err: any) {
       console.error('Failed to fetch threats:', err);
@@ -37,7 +37,7 @@ export function useThreats(contractAddress?: string) {
     } finally {
       setLoading(false);
     }
-  }, [provider, contractAddress]);
+  }, [provider, contractAddress, currentNetwork]);
 
   useEffect(() => {
     fetchThreats();
@@ -56,7 +56,7 @@ export function useThreats(contractAddress?: string) {
 }
 
 export function useThreatStats(contractAddress?: string) {
-  const { provider } = useWallet();
+  const { provider, currentNetwork } = useWallet();
   const [stats, setStats] = useState({
     totalReports: 0n,
     verifiedReports: 0n,
@@ -71,7 +71,7 @@ export function useThreatStats(contractAddress?: string) {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const data = await getThreatStats(contractAddress, provider);
+        const data = await getThreatStats(contractAddress, provider, currentNetwork);
         setStats(data);
       } catch (err) {
         console.error('Failed to fetch threat stats:', err);
@@ -81,13 +81,13 @@ export function useThreatStats(contractAddress?: string) {
     };
 
     fetchStats();
-  }, [provider, contractAddress]);
+  }, [provider, contractAddress, currentNetwork]);
 
   return { stats, loading };
 }
 
 export function useRecentThreats(contractAddresses: string[] = []) {
-  const { provider } = useWallet();
+  const { provider, currentNetwork } = useWallet();
   const [recentThreats, setRecentThreats] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -105,7 +105,7 @@ export function useRecentThreats(contractAddresses: string[] = []) {
         const allThreats = await Promise.all(
           contractAddresses.map(async (address) => {
             try {
-              const reports = await getThreatReports(address, provider);
+              const reports = await getThreatReports(address, provider, currentNetwork);
               return reports.map((report: ThreatReport) => ({
                 ...report,
                 contractAddress: address,
@@ -133,7 +133,7 @@ export function useRecentThreats(contractAddresses: string[] = []) {
     };
 
     fetchRecent();
-  }, [provider, contractAddresses.join(',')]);
+  }, [provider, contractAddresses.join(','), currentNetwork]);
 
   return { recentThreats, loading };
 }

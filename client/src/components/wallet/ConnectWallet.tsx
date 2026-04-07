@@ -1,5 +1,6 @@
 import { useWallet } from '../../hooks/useWallet';
 import Button from '../ui/Button';
+import { SUPPORTED_NETWORKS, NETWORKS, type NetworkKey } from '../../config/contracts';
 
 export default function ConnectWallet() {
   const { isConnected, loading, connect, isCorrectNetwork, switchNetwork } = useWallet();
@@ -10,12 +11,16 @@ export default function ConnectWallet() {
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
           <p className="text-yellow-400 font-medium mb-2">⚠️ Wrong Network</p>
           <p className="text-gray-300 text-sm">
-            Please switch to BSC Testnet to continue
+            Please switch to a supported network to continue
           </p>
         </div>
-        <Button onClick={switchNetwork} className="w-full">
-          Switch to BSC Testnet
-        </Button>
+        <div className="space-y-2">
+          {SUPPORTED_NETWORKS.map((key) => (
+            <Button key={key} onClick={() => switchNetwork(key as NetworkKey)} className="w-full">
+              Switch to {NETWORKS[key].chainName}
+            </Button>
+          ))}
+        </div>
       </div>
     );
   }

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '../../hooks/useWallet';
 import Card from '../ui/Card';
 import { formatBalance, formatCompact, formatUSD } from '../../utils/formatters';
+import { NETWORKS } from '../../config/contracts';
 
 interface WalletStatsProps {
   address?: string;
 }
 
 export default function WalletStats({ address }: WalletStatsProps) {
-  const { balance, provider } = useWallet();
+  const { balance, provider, currentNetwork } = useWallet();
   const [stats, setStats] = useState({
     protectedTokens: 0,
     protectedValue: 0,
@@ -66,7 +67,7 @@ export default function WalletStats({ address }: WalletStatsProps) {
   const statCards = [
     {
       label: 'Wallet Balance',
-      value: `${formatBalance(balance)} BNB`,
+      value: `${formatBalance(balance)} ${NETWORKS[currentNetwork].nativeCurrency.symbol}`,
       subtext: '≈ $0.00',
       icon: '💰',
       color: 'blue',

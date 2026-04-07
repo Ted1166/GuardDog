@@ -1,0 +1,12 @@
+{
+  "network": "opBNBTestnet",
+  "chainId": 5611,
+  "deployer": "0x42Eec98C0eD45d41bC5B5295aF751ea70F62aFe7",
+  "timestamp": "2026-04-07T01:23:33.695Z",
+  "gasUsed": "4151336",
+  "explorer": "https://testnet.opbnbscan.com",
+  "contracts": {
+    "ThreatRegistry": "0xBB4Bd19224bB19f36C1BD97aE8014c0f51D0c383",
+    "GuardianVault": "0x6994b39F3bCD0D33029EfD95d15F72310227aD78"
+  }
+}

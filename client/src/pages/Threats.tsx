@@ -12,6 +12,14 @@ import {
 } from '../utils/formatters';
 import { getThreatReports, reportThreat, upvoteThreat } from '../utils/contracts';
 import { ethers } from 'ethers';
+import {
+  CONTRACT_ADDRESSES,
+  NETWORKS,
+  BLOCK_EXPLORER,
+  SUPPORTED_NETWORKS,
+  type NetworkKey,
+  getNetworkFromChainId,
+} from '../config/contracts';
 
 const THREAT_REGISTRY_ABI = [
   'event ThreatReported(address indexed contractAddress, address indexed reporter, uint8 threatLevel, string threatType)',
@@ -19,14 +27,13 @@ const THREAT_REGISTRY_ABI = [
   'function getAllReports(address contractAddress) view returns (tuple(address reporter, uint256 timestamp, uint8 threatLevel, string threatType, string evidence, bool verified, uint256 upvotes)[])',
 ];
 
-const THREAT_REGISTRY_ADDRESS =
-  (import.meta.env.VITE_THREAT_REGISTRY_ADDRESS as string) ||
-  '0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9';
+function getNetworkForChain(chainId: string): NetworkKey {
+  const detected = getNetworkFromChainId(chainId);
+  return SUPPORTED_NETWORKS.includes(detected) ? detected : 'bscTestnet';
+}
 
-const BSC_TESTNET_RPC = 'https://bsc-testnet-rpc.publicnode.com';
-
-function getReadProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(BSC_TESTNET_RPC);
+function getReadProvider(network: NetworkKey): ethers.JsonRpcProvider {
+  return new ethers.JsonRpcProvider(NETWORKS[network].rpcUrls[0]);
 }
 
 interface ThreatReport {
@@ -75,7 +82,7 @@ async function fetchLogsChunked(
 }
 
 export default function Threats() {
-  const { isConnected, signer } = useWallet();
+  const { isConnected, signer, chainId } = useWallet();
   const [walletAddress, setWalletAddress] = useState<string>('');
 
   const [searchAddress, setSearchAddress] = useState('');
@@ -93,7 +100,9 @@ export default function Threats() {
   const [reporting, setReporting] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  useEffect(() => { loadRecentThreats(); }, []);
+  const currentNetwork = getNetworkForChain(chainId);
+
+  useEffect(() => { loadRecentThreats(); }, [chainId]);
 
   useEffect(() => {
     if (signer) signer.getAddress().then(setWalletAddress);
@@ -102,8 +111,10 @@ export default function Threats() {
   const loadRecentThreats = async () => {
     setLoadingRecent(true);
     try {
-      const readProvider = getReadProvider();
-      const contract = new ethers.Contract(THREAT_REGISTRY_ADDRESS, THREAT_REGISTRY_ABI, readProvider);
+      const network = getNetworkForChain(chainId);
+      const readProvider = getReadProvider(network);
+      const threatRegistryAddress = CONTRACT_ADDRESSES[network].ThreatRegistry;
+      const contract = new ethers.Contract(threatRegistryAddress, THREAT_REGISTRY_ABI, readProvider);
 
       const latestBlock = await readProvider.getBlockNumber();
       const fromBlock = Math.max(0, latestBlock - 30000); // ~24h on BSC testnet
@@ -147,7 +158,8 @@ export default function Threats() {
     if (!isValidAddress(searchAddress)) return;
     setSearching(true);
     try {
-      const reports = await getThreatReports(searchAddress, getReadProvider());
+      const network = getNetworkForChain(chainId);
+      const reports = await getThreatReports(searchAddress, getReadProvider(network), network);
       setSearchResults(reports as ThreatReport[]);
     } catch (error) {
       console.error('Failed to load threats:', error);
@@ -162,7 +174,7 @@ export default function Threats() {
     if (!signer || !isValidAddress(reportAddress)) return;
     setReporting(true);
     try {
-      await reportThreat(signer, reportAddress, threatLevel, threatType, evidence);
+      await reportThreat(signer, reportAddress, threatLevel, threatType, evidence, currentNetwork);
       setReportSuccess(true);
       setTimeout(async () => {
         setShowReportModal(false);
@@ -180,17 +192,19 @@ export default function Threats() {
   const handleUpvote = async (contractAddress: string, reportIndex: number) => {
     if (!signer) return;
     try {
-      await upvoteThreat(signer, contractAddress, reportIndex);
+      await upvoteThreat(signer, contractAddress, reportIndex, currentNetwork);
       await loadRecentThreats();
       if (searchAddress) await handleSearch({ preventDefault: () => {} } as React.FormEvent);
     } catch (error) { console.error('Failed to upvote:', error); }
   };
 
+  const explorerBase = BLOCK_EXPLORER[currentNetwork];
+
   const ThreatCard = ({ contractAddress, report, reportIndex, showContract = true, currentAddress }: {
-    contractAddress: string; 
-    report: ThreatReport; 
-    reportIndex: number; 
-    showContract?: boolean; 
+    contractAddress: string;
+    report: ThreatReport;
+    reportIndex: number;
+    showContract?: boolean;
     currentAddress?: string;
   }) => {
     const badge = getThreatBadge(report.threatLevel);
@@ -215,7 +229,7 @@ export default function Threats() {
               onClick={() => {
                 setSearchAddress(contractAddress);
                 setSearching(true);
-                getThreatReports(contractAddress, getReadProvider())
+                getThreatReports(contractAddress, getReadProvider(currentNetwork), currentNetwork)
                   .then((r) => setSearchResults(r as ThreatReport[]))
                   .finally(() => setSearching(false));
               }}
@@ -223,7 +237,7 @@ export default function Threats() {
             >
               {formatAddress(contractAddress)}
             </button>
-            <a href={`https://testnet.bscscan.com/address/${contractAddress}`} target="_blank"
+            <a href={`${explorerBase}/address/${contractAddress}`} target="_blank"
               rel="noopener noreferrer" className="ml-2 text-xs text-gray-500 hover:text-gray-300">↗</a>
           </div>
         )}
@@ -282,8 +296,8 @@ export default function Threats() {
           <Card>
             <h2 className="text-xl font-semibold text-white mb-4">
               Reports for {formatAddress(searchAddress)}
-              <a href={`https://testnet.bscscan.com/address/${searchAddress}`} target="_blank"
-                rel="noopener noreferrer" className="ml-3 text-sm text-blue-400 hover:text-blue-300">↗ BSCScan</a>
+              <a href={`${explorerBase}/address/${searchAddress}`} target="_blank"
+                rel="noopener noreferrer" className="ml-3 text-sm text-blue-400 hover:text-blue-300">↗ Explorer</a>
             </h2>
             {searching ? (
               <div className="text-center py-8 text-gray-400">Loading reports...</div>
@@ -322,7 +336,7 @@ export default function Threats() {
           {loadingRecent ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-2xl mb-2">🔍</div>
-              <p>Scanning BSC Testnet for threat reports...</p>
+              <p>Scanning {NETWORKS[currentNetwork].chainName} for threat reports...</p>
             </div>
           ) : recentThreats.length > 0 ? (
             <div className="space-y-4">

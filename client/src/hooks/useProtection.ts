@@ -9,7 +9,7 @@ import {
 import { parseContractError } from '../utils/contracts';
 
 export function useProtection(walletAddress?: string) {
-  const { provider, signer } = useWallet();
+  const { provider, signer, currentNetwork } = useWallet();
   const [isProtected, setIsProtected] = useState(false);
   const [protectionStartTime, setProtectionStartTime] = useState<bigint | null>(null);
   const [duration, setDuration] = useState<bigint | null>(null);
@@ -26,11 +26,11 @@ export function useProtection(walletAddress?: string) {
       setLoading(true);
       setError('');
 
-      const isProtectedStatus = await checkProtectionStatus(walletAddress, provider);
+      const isProtectedStatus = await checkProtectionStatus(walletAddress, provider, currentNetwork);
       setIsProtected(isProtectedStatus);
 
       if (isProtectedStatus) {
-        const durationSec = await getProtectionDuration(walletAddress, provider);
+        const durationSec = await getProtectionDuration(walletAddress, provider, currentNetwork);
         setDuration(durationSec);
 
         const now = BigInt(Math.floor(Date.now() / 1000));
@@ -46,7 +46,7 @@ export function useProtection(walletAddress?: string) {
     } finally {
       setLoading(false);
     }
-    }, [provider, walletAddress]);
+    }, [provider, walletAddress, currentNetwork]);
 
     useEffect(() => {
         fetchProtectionStatus();
@@ -71,7 +71,7 @@ export function useProtection(walletAddress?: string) {
       setLoading(true);
       setError('');
 
-      await enableProtectionContract(signer);
+      await enableProtectionContract(signer, currentNetwork);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
@@ -94,7 +94,7 @@ export function useProtection(walletAddress?: string) {
       setLoading(true);
       setError('');
 
-      await disableProtectionContract(signer);
+      await disableProtectionContract(signer, currentNetwork);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
