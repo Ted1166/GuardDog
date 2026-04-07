@@ -14,42 +14,51 @@ declare global {
   }
 }
 
+const CONNECTED_KEY = 'guarddog_wallet_connected';
+
 export function useWallet() {
-  const [address, setAddress] = useState<string>('');
+  const [address, setAddress]       = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [chainId, setChainId] = useState<string>('');
-  const [balance, setBalance] = useState<bigint>(0n);
-  const [loading, setLoading] = useState(true);
+  const [provider, setProvider]     = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner]         = useState<ethers.Signer | null>(null);
+  const [chainId, setChainId]       = useState<string>('');
+  const [balance, setBalance]       = useState<bigint>(0n);
+  const [loading, setLoading]       = useState(true);
+  const [showNetworkModal, setShowNetworkModal] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      if (typeof window.ethereum !== 'undefined') {
-        const web3Provider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(web3Provider);
+      const wasConnected = localStorage.getItem(CONNECTED_KEY) === 'true';
 
-        try {
-          const accounts = await window.ethereum.request({
-            method: 'eth_accounts',
-          });
-
-          if (accounts.length > 0) {
-            const signer = await web3Provider.getSigner();
-            const address = await signer.getAddress();
-            const network = await web3Provider.getNetwork();
-            const balance = await web3Provider.getBalance(address);
-
-            setAddress(address);
-            setSigner(signer);
-            setChainId(network.chainId.toString());
-            setBalance(balance);
-            setIsConnected(true);
-          }
-        } catch (error) {
-          console.error('Failed to initialize wallet:', error);
-        }
+      if (!wasConnected || typeof window.ethereum === 'undefined') {
+        setLoading(false);
+        return;
       }
+
+      try {
+        const web3Provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+
+        if (accounts.length > 0) {
+          const s       = await web3Provider.getSigner();
+          const addr    = await s.getAddress();
+          const network = await web3Provider.getNetwork();
+          const bal     = await web3Provider.getBalance(addr);
+
+          setProvider(web3Provider);
+          setSigner(s);
+          setAddress(addr);
+          setChainId(network.chainId.toString());
+          setBalance(bal);
+          setIsConnected(true);
+        } else {
+          localStorage.removeItem(CONNECTED_KEY);
+        }
+      } catch (error) {
+        console.error('Failed to restore wallet session:', error);
+        localStorage.removeItem(CONNECTED_KEY);
+      }
+
       setLoading(false);
     };
 
@@ -61,17 +70,15 @@ export function useWallet() {
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
-        disconnect();
+        // User disconnected from MetaMask side
+        disconnectCleanup();
       } else {
         setAddress(accounts[0]);
-
         window.location.reload();
       }
     };
 
-    const handleChainChanged = () => {
-      window.location.reload();
-    };
+    const handleChainChanged = () => window.location.reload();
 
     window.ethereum.on('accountsChanged', handleAccountsChanged);
     window.ethereum.on('chainChanged', handleChainChanged);
@@ -95,10 +102,20 @@ export function useWallet() {
     };
 
     updateBalance();
-    const interval = setInterval(updateBalance, 10000); 
-
+    const interval = setInterval(updateBalance, 10000);
     return () => clearInterval(interval);
   }, [provider, address]);
+
+  const disconnectCleanup = useCallback(() => {
+    localStorage.removeItem(CONNECTED_KEY);
+    setAddress('');
+    setIsConnected(false);
+    setSigner(null);
+    setProvider(null);
+    setChainId('');
+    setBalance(0n);
+    setShowNetworkModal(false);
+  }, []);
 
   const connect = useCallback(async () => {
     if (!window.ethereum) {
@@ -109,31 +126,31 @@ export function useWallet() {
     try {
       setLoading(true);
 
-       await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      });
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
 
       const web3Provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await web3Provider.getSigner();
-      const address = await signer.getAddress();
+      const s       = await web3Provider.getSigner();
+      const addr    = await s.getAddress();
       const network = await web3Provider.getNetwork();
-      const balance = await web3Provider.getBalance(address);
+      const bal     = await web3Provider.getBalance(addr);
 
       setProvider(web3Provider);
-      setSigner(signer);
-      setAddress(address);
+      setSigner(s);
+      setAddress(addr);
       setChainId(network.chainId.toString());
-      setBalance(balance);
+      setBalance(bal);
       setIsConnected(true);
+
+      localStorage.setItem(CONNECTED_KEY, 'true');
 
       const detectedNetwork = getNetworkFromChainId(network.chainId.toString());
       if (!SUPPORTED_NETWORKS.includes(detectedNetwork)) {
-        await switchNetwork();
+        setShowNetworkModal(true);
       }
     } catch (error: any) {
       console.error('Failed to connect wallet:', error);
       if (error.code === 4001) {
-        alert('Please connect your wallet to continue');
+        alert('Connection cancelled. Please connect your wallet to continue.');
       }
     } finally {
       setLoading(false);
@@ -141,12 +158,9 @@ export function useWallet() {
   }, []);
 
   const disconnect = useCallback(() => {
-    setAddress('');
-    setIsConnected(false);
-    setSigner(null);
-    setChainId('');
-    setBalance(0n);
-  }, []);
+    disconnectCleanup();
+
+  }, [disconnectCleanup]);
 
   const switchNetwork = useCallback(async (targetKey: NetworkKey = DEFAULT_NETWORK) => {
     if (!window.ethereum) return;
@@ -158,21 +172,21 @@ export function useWallet() {
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: targetNetwork.chainId }],
       });
+      setShowNetworkModal(false);
     } catch (error: any) {
       if (error.code === 4902) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: targetNetwork.chainId,
-                chainName: targetNetwork.chainName,
-                nativeCurrency: targetNetwork.nativeCurrency,
-                rpcUrls: targetNetwork.rpcUrls,
-                blockExplorerUrls: targetNetwork.blockExplorerUrls,
-              },
-            ],
+            params: [{
+              chainId:         targetNetwork.chainId,
+              chainName:       targetNetwork.chainName,
+              nativeCurrency:  targetNetwork.nativeCurrency,
+              rpcUrls:         targetNetwork.rpcUrls,
+              blockExplorerUrls: targetNetwork.blockExplorerUrls,
+            }],
           });
+          setShowNetworkModal(false);
         } catch (addError) {
           console.error('Failed to add network:', addError);
         }
@@ -184,8 +198,7 @@ export function useWallet() {
 
   const isCorrectNetwork = useCallback(() => {
     if (!chainId) return false;
-    const network = getNetworkFromChainId(chainId);
-    return SUPPORTED_NETWORKS.includes(network);
+    return SUPPORTED_NETWORKS.includes(getNetworkFromChainId(chainId));
   }, [chainId]);
 
   const currentNetwork = chainId ? getNetworkFromChainId(chainId) : DEFAULT_NETWORK;
@@ -203,5 +216,7 @@ export function useWallet() {
     switchNetwork,
     isCorrectNetwork: isCorrectNetwork(),
     currentNetwork,
+    showNetworkModal,
+    setShowNetworkModal,
   };
 }
