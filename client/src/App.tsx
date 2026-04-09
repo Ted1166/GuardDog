@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Chatbot from './components/features/Chatbot';
+import TransactionScreener from './components/features/TransactionScreener';
 import Dashboard from './pages/Dashboard';
 import Protection from './pages/Protection';
 import Threats from './pages/Threats';
@@ -29,8 +30,8 @@ function App() {
 
           <Footer />
           
-          {/* Global AI Chatbot */}
           <Chatbot />
+          <TransactionScreener />
         </div>
       </Router>
     </>

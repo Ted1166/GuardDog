@@ -1,13 +1,10 @@
-// src/components/chat/GuardDogChat.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { JSX } from "react/jsx-runtime";
 import { useGuardDogAgent, type AgentMessage } from "../../utils/useGuardDogAgent";
 
 
-// ── Minimal markdown renderer ─────────────────────────────────────────
 
 function renderMarkdown(text: string) {
-  // Split into lines, process blocks
   const lines = text.split("\n");
   const elements: JSX.Element[] = [];
   let i = 0;
@@ -16,7 +13,6 @@ function renderMarkdown(text: string) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Code blocks
     if (line.startsWith("```")) {
       const lang = line.slice(3).trim();
       const codeLines: string[] = [];
@@ -25,7 +21,7 @@ function renderMarkdown(text: string) {
         codeLines.push(lines[i]);
         i++;
       }
-      i++; // skip closing ```
+      i++;
       elements.push(
         <pre
           key={key++}
@@ -42,7 +38,6 @@ function renderMarkdown(text: string) {
       continue;
     }
 
-    // Bullet points
     if (line.match(/^[-•*]\s/)) {
       const items: string[] = [];
       while (i < lines.length && lines[i].match(/^[-•*]\s/)) {
@@ -62,7 +57,6 @@ function renderMarkdown(text: string) {
       continue;
     }
 
-    // Numbered lists
     if (line.match(/^\d+\.\s/)) {
       const items: string[] = [];
       while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
@@ -84,13 +78,11 @@ function renderMarkdown(text: string) {
       continue;
     }
 
-    // Empty lines
     if (!line.trim()) {
       i++;
       continue;
     }
 
-    // Regular paragraph
     elements.push(
       <p key={key++} className="text-sm my-1">
         {inlineFormat(line)}
@@ -103,7 +95,6 @@ function renderMarkdown(text: string) {
 }
 
 function inlineFormat(text: string) {
-  // Bold, inline code, links
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g);
   return parts.map((part, i) => {
     if (part.startsWith("`") && part.endsWith("`")) {
@@ -141,7 +132,6 @@ function inlineFormat(text: string) {
   });
 }
 
-// ── Message Bubble ────────────────────────────────────────────────────
 
 function MessageBubble({ message }: { message: AgentMessage }) {
   const isUser = message.role === "user";
@@ -176,7 +166,6 @@ function MessageBubble({ message }: { message: AgentMessage }) {
   );
 }
 
-// ── Loading indicator ─────────────────────────────────────────────────
 
 function ThinkingIndicator() {
   return (
@@ -196,7 +185,6 @@ function ThinkingIndicator() {
   );
 }
 
-// ── Quick Action Chips ────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
   { label: "How does protection work?", icon: "🛡️" },
@@ -229,7 +217,6 @@ function QuickActions({ onSelect }: { onSelect: (text: string) => void }) {
   );
 }
 
-// ── Main Chat Component ───────────────────────────────────────────────
 
 export default function GuardDogChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -266,7 +253,7 @@ export default function GuardDogChat() {
 
   return (
     <>
-      {/* ── Floating trigger ────────────────────────────────────── */}
+      {/* Floating trigger */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -284,7 +271,7 @@ export default function GuardDogChat() {
         </button>
       )}
 
-      {/* ── Chat panel ──────────────────────────────────────────── */}
+      {/* Chat panel */}
       {isOpen && (
         <div
           className="fixed bottom-6 right-6 z-50 w-[400px] h-[620px] flex flex-col rounded-2xl overflow-hidden border border-white/[0.06] shadow-2xl shadow-black/50"
@@ -419,7 +406,7 @@ export default function GuardDogChat() {
         </div>
       )}
 
-      {/* ── Keyframe animation ──────────────────────────────────── */}
+      {/* Keyframe animation */}
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(16px) scale(0.97); }
