@@ -72,6 +72,48 @@ export class BlockchainService {
     }
   }
 
+  onTokenRegistered(
+    handler: (wallet: string, token: string) => void
+  ): () => void {
+    const listener = (wallet: string, token: string) => {
+      try {
+        handler(wallet.toLowerCase(), token.toLowerCase());
+      } catch (err) {
+        console.error('TokenRegistered handler error:', err);
+      }
+    };
+    this.vaultContract.on('TokenRegistered', listener);
+    return () => {
+      this.vaultContract.off('TokenRegistered', listener);
+    };
+  }
+
+  onTokenUnregistered(
+    handler: (wallet: string, token: string) => void
+  ): () => void {
+    const listener = (wallet: string, token: string) => {
+      try {
+        handler(wallet.toLowerCase(), token.toLowerCase());
+      } catch (err) {
+        console.error('TokenUnregistered handler error:', err);
+      }
+    };
+    this.vaultContract.on('TokenUnregistered', listener);
+    return () => {
+      this.vaultContract.off('TokenUnregistered', listener);
+    };
+  }
+
+  async getRegisteredTokens(walletAddress: string): Promise<string[]> {
+    try {
+      const tokens: string[] = await this.vaultContract.getRegisteredTokens(walletAddress);
+      return tokens.map(t => t.toLowerCase());
+    } catch (error) {
+      console.error(`Failed to fetch registered tokens for ${walletAddress}:`, error);
+      return [];
+    }
+  }
+
   async getTokenBalance(walletAddress: string, tokenAddress: string): Promise<bigint> {
     try {
       const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, this.provider);
@@ -122,26 +164,23 @@ export class BlockchainService {
     walletAddress: string,
     tokenAddress: string,
     amount: bigint,
-    threatLevel: number,
     reason: string
   ): Promise<string> {
     try {
       console.log(`🛡️  Protecting ${ethers.formatEther(amount)} tokens from ${tokenAddress}`);
       console.log(`   Wallet: ${walletAddress}`);
-      console.log(`   Threat Level: ${threatLevel}`);
       console.log(`   Reason: ${reason}`);
 
       const tx = await this.vaultContract.protectTokens(
         walletAddress,
         tokenAddress,
         amount,
-        threatLevel,
         reason
       );
 
       console.log(`   Transaction hash: ${tx.hash}`);
       const receipt = await tx.wait();
-      
+
       console.log(`✅ Protection executed! Block: ${receipt.blockNumber}`);
       return tx.hash;
     } catch (error: any) {
@@ -155,14 +194,12 @@ export class BlockchainService {
     tokens: Array<{
       address: string;
       amount: bigint;
-      threatLevel: number;
       reason: string;
     }>
   ): Promise<string> {
     try {
       const tokenAddresses = tokens.map(t => t.address);
       const amounts = tokens.map(t => t.amount);
-      const threatLevels = tokens.map(t => t.threatLevel);
       const reasons = tokens.map(t => t.reason);
 
       console.log(`🛡️  Batch protecting ${tokens.length} tokens for wallet ${walletAddress}`);
@@ -171,7 +208,6 @@ export class BlockchainService {
         walletAddress,
         tokenAddresses,
         amounts,
-        threatLevels,
         reasons
       );
 

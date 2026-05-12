@@ -47,7 +47,7 @@ async function main() {
   // Deploy GuardianVault
   console.log("\n🛡️  Deploying GuardianVault...");
   const GuardianVault = await hre.ethers.getContractFactory("GuardianVault");
-  const guardianVault = await GuardianVault.deploy(deployer.address);
+  const guardianVault = await GuardianVault.deploy(deployer.address, threatRegistryAddress);
   await guardianVault.waitForDeployment();
   const guardianVaultAddress = await guardianVault.getAddress();
   console.log("✅ GuardianVault:", guardianVaultAddress);

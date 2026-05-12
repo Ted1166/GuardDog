@@ -15,6 +15,9 @@ export class GuardDogAgent {
   private isRunning: boolean = false;
   private intervalHandle?: NodeJS.Timeout;
   private startTime: number;
+  private eventUnsubscribes: Array<() => void> = [];
+  private pendingScans: Map<string, NodeJS.Timeout> = new Map();
+  private readonly REACTIVE_SCAN_DEBOUNCE_MS = 3000;
 
   constructor() {
     this.blockchain = new BlockchainService(
@@ -172,6 +175,56 @@ export class GuardDogAgent {
     }
   }
 
+  private subscribeToRegistryEvents(): void {
+    const onRegistered = (wallet: string, token: string) => {
+      console.log(`📥 TokenRegistered: ${token} for wallet ${wallet}`);
+      if (!this.monitor.getMonitoredWallets().includes(wallet)) {
+        this.monitor.addWallet(wallet);
+      }
+      this.scheduleReactiveScan(wallet);
+    };
+
+    const onUnregistered = (wallet: string, token: string) => {
+      console.log(`📤 TokenUnregistered: ${token} for wallet ${wallet}`);
+      // No scan needed — the next cycle will simply not include this token.
+    };
+
+    this.eventUnsubscribes.push(this.blockchain.onTokenRegistered(onRegistered));
+    this.eventUnsubscribes.push(this.blockchain.onTokenUnregistered(onUnregistered));
+    console.log('🎧 Subscribed to TokenRegistered / TokenUnregistered events');
+  }
+
+  private scheduleReactiveScan(walletAddress: string): void {
+    const existing = this.pendingScans.get(walletAddress);
+    if (existing) clearTimeout(existing);
+
+    const handle = setTimeout(async () => {
+      this.pendingScans.delete(walletAddress);
+      try {
+        console.log(`\n⚡ Reactive scan for ${walletAddress}`);
+        const detections = await this.monitor.scanWallet(walletAddress);
+        const protectable = detections.filter(d => d.shouldProtect);
+        if (protectable.length > 0) {
+          const txHash = await this.monitor.batchExecuteProtection(walletAddress, protectable);
+          if (txHash) {
+            const totalAmount = protectable.reduce((sum, d) => sum + d.balance, 0n);
+            await this.messaging.sendAlert({
+              type: 'protection_executed',
+              walletAddress,
+              txHash,
+              message: `Reactive protection: ${protectable.length} token(s), ${ethers.formatEther(totalAmount)} total`,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`Reactive scan failed for ${walletAddress}:`, err);
+      }
+    }, this.REACTIVE_SCAN_DEBOUNCE_MS);
+
+    this.pendingScans.set(walletAddress, handle);
+  }
+
   async start(): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️  Agent is already running');
@@ -180,6 +233,8 @@ export class GuardDogAgent {
 
     console.log(`\n🚀 Starting autonomous monitoring (interval: ${this.monitorInterval / 60000} minutes)...\n`);
     this.isRunning = true;
+
+    this.subscribeToRegistryEvents();
 
     await this.runScanCycle();
 
@@ -202,6 +257,13 @@ export class GuardDogAgent {
     if (!this.isRunning) return;
     console.log('\n🛑 Stopping autonomous monitoring...\n');
     if (this.intervalHandle) clearInterval(this.intervalHandle);
+
+    for (const unsub of this.eventUnsubscribes) unsub();
+    this.eventUnsubscribes = [];
+
+    for (const handle of this.pendingScans.values()) clearTimeout(handle);
+    this.pendingScans.clear();
+
     this.isRunning = false;
     console.log('✅ Agent stopped\n');
   }
@@ -237,13 +299,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await agent.initialize();
 
     const wallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
-    const tokens  = (process.env.MONITORED_TOKENS  || '').split(',').filter(Boolean);
+    const seedTokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
 
-    console.log(`🔍 Monitoring ${wallets.length} wallet(s) with ${tokens.length} token(s)`);
+    console.log(
+      `🔍 Monitoring ${wallets.length} wallet(s); ` +
+      `tokens are read from the on-chain registry per scan` +
+      (seedTokens.length ? ` (+ ${seedTokens.length} env-seeded)` : '')
+    );
 
     if (wallets.length > 0) {
       for (const wallet of wallets) {
-        agent.addWallet(wallet.trim(), tokens.map(t => t.trim()));
+        agent.addWallet(wallet.trim(), seedTokens.map(t => t.trim()));
       }
     } else {
       console.log('⚠️  No wallets in MONITORED_WALLETS — add via API or .env\n');

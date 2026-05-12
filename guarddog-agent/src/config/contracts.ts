@@ -1,11 +1,15 @@
 export const GUARDIAN_VAULT_ABI = [
   "function isWalletProtected(address wallet) external view returns (bool)",
   "function getProtectedBalance(address wallet, address token) external view returns (uint256)",
-  "function protectTokens(address wallet, address token, uint256 amount, uint8 threatLevel, string calldata reason) external",
-  "function batchProtectTokens(address wallet, address[] calldata tokens, uint256[] calldata amounts, uint8[] calldata threatLevels, string[] calldata reasons) external",
+  "function protectTokens(address wallet, address token, uint256 amount, string calldata reason) external",
+  "function batchProtectTokens(address wallet, address[] calldata tokens, uint256[] calldata amounts, string[] calldata reasons) external",
   "function guardian() external view returns (address)",
+  "function getRegisteredTokens(address wallet) external view returns (address[])",
+  "function isTokenRegistered(address wallet, address token) external view returns (bool)",
   "event ThreatDetected(address indexed token, address indexed spender, uint8 threatLevel, string reason)",
-  "event TokensProtected(address indexed wallet, address indexed token, uint256 amount, uint8 threatLevel)"
+  "event TokensProtected(address indexed wallet, address indexed token, uint256 amount, uint8 threatLevel)",
+  "event TokenRegistered(address indexed wallet, address indexed token)",
+  "event TokenUnregistered(address indexed wallet, address indexed token)"
 ];
 
 export const THREAT_REGISTRY_ABI = [

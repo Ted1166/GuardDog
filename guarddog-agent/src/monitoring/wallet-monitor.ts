@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 
 export interface MonitoredWallet {
   address: string;
+  /** Tokens seeded from env/API. Unioned with on-chain registered tokens at scan time. */
   tokens: string[];
   lastScanTime: number;
 }
@@ -66,9 +67,21 @@ export class WalletMonitor {
       return [];
     }
 
+    const onchainTokens = await this.blockchain.getRegisteredTokens(walletAddress);
+    const tokensToScan = Array.from(
+      new Set([...wallet.tokens.map(t => t.toLowerCase()), ...onchainTokens])
+    );
+
+    if (tokensToScan.length === 0) {
+      console.log(`ℹ️  No registered tokens for ${walletAddress}. Skipping.`);
+      return [];
+    }
+
+    console.log(`   Scanning ${tokensToScan.length} token(s) (${onchainTokens.length} on-chain)`);
+
     const detections: ThreatDetection[] = [];
 
-    for (const tokenAddress of wallet.tokens) {
+    for (const tokenAddress of tokensToScan) {
       try {
         const threatScore = await this.blockchain.getThreatScore(tokenAddress);
         const isVerified = await this.blockchain.isVerifiedThreat(tokenAddress);
@@ -148,7 +161,6 @@ export class WalletMonitor {
         detection.walletAddress,
         detection.tokenAddress,
         detection.balance,
-        detection.threatLevel,
         detection.reason
       );
 
@@ -161,7 +173,7 @@ export class WalletMonitor {
 
   async batchExecuteProtection(walletAddress: string, detections: ThreatDetection[]): Promise<string | null> {
     const protectableDetections = detections.filter(d => d.shouldProtect);
-    
+
     if (protectableDetections.length === 0) {
       console.log(`⏭️  No tokens to protect for wallet ${walletAddress}`);
       return null;
@@ -171,7 +183,6 @@ export class WalletMonitor {
       const tokens = protectableDetections.map(d => ({
         address: d.tokenAddress,
         amount: d.balance,
-        threatLevel: d.threatLevel,
         reason: d.reason,
       }));
 

@@ -2,10 +2,13 @@ import { ethers } from 'ethers';
 import {
   GUARDIAN_VAULT_ABI,
   THREAT_REGISTRY_ABI,
+  ERC20_ABI,
   getContractAddress,
   type NetworkKey,
   DEFAULT_NETWORK,
 } from '../config/contracts';
+
+export const MAX_UINT256 = ethers.MaxUint256;
 
 export function getGuardianVaultContract(
   signerOrProvider: ethers.Signer | ethers.Provider,
@@ -21,6 +24,130 @@ export function getThreatRegistryContract(
 ) {
   const address = getContractAddress('ThreatRegistry', network);
   return new ethers.Contract(address, THREAT_REGISTRY_ABI, signerOrProvider);
+}
+
+export function getErc20Contract(
+  tokenAddress: string,
+  signerOrProvider: ethers.Signer | ethers.Provider
+) {
+  return new ethers.Contract(tokenAddress, ERC20_ABI, signerOrProvider);
+}
+
+export interface TokenMetadata {
+  address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
+export async function getTokenMetadata(
+  tokenAddress: string,
+  provider: ethers.Provider
+): Promise<TokenMetadata> {
+  const token = getErc20Contract(tokenAddress, provider);
+  const [name, symbol, decimals] = await Promise.all([
+    token.name().catch(() => 'Unknown'),
+    token.symbol().catch(() => '???'),
+    token.decimals().catch(() => 18),
+  ]);
+  return {
+    address: tokenAddress,
+    name,
+    symbol,
+    decimals: Number(decimals),
+  };
+}
+
+export async function getAllowance(
+  tokenAddress: string,
+  owner: string,
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
+): Promise<bigint> {
+  const vault = getContractAddress('GuardianVault', network);
+  const token = getErc20Contract(tokenAddress, provider);
+  return token.allowance(owner, vault);
+}
+
+export async function approveToken(
+  signer: ethers.Signer,
+  tokenAddress: string,
+  amount: bigint,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const vault = getContractAddress('GuardianVault', network);
+  const token = getErc20Contract(tokenAddress, signer);
+  const tx = await token.approve(vault, amount);
+  return tx.wait();
+}
+
+export async function registerToken(
+  signer: ethers.Signer,
+  tokenAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const vault = getGuardianVaultContract(signer, network);
+  const tx = await vault.registerToken(tokenAddress);
+  return tx.wait();
+}
+
+export async function unregisterToken(
+  signer: ethers.Signer,
+  tokenAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const vault = getGuardianVaultContract(signer, network);
+  const tx = await vault.unregisterToken(tokenAddress);
+  return tx.wait();
+}
+
+export async function getRegisteredTokens(
+  walletAddress: string,
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
+): Promise<string[]> {
+  const vault = getGuardianVaultContract(provider, network);
+  return vault.getRegisteredTokens(walletAddress);
+}
+
+export async function getTokenBalance(
+  tokenAddress: string,
+  walletAddress: string,
+  provider: ethers.Provider
+): Promise<bigint> {
+  const token = getErc20Contract(tokenAddress, provider);
+  return token.balanceOf(walletAddress);
+}
+
+export async function getUserMaxProtection(
+  walletAddress: string,
+  tokenAddress: string,
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
+): Promise<bigint> {
+  const vault = getGuardianVaultContract(provider, network);
+  return vault.userMaxProtection(walletAddress, tokenAddress);
+}
+
+export async function getEffectiveCap(
+  walletAddress: string,
+  tokenAddress: string,
+  provider: ethers.Provider,
+  network: NetworkKey = DEFAULT_NETWORK
+): Promise<bigint> {
+  const vault = getGuardianVaultContract(provider, network);
+  return vault.getEffectiveCap(walletAddress, tokenAddress);
+}
+
+export async function setUserMaxProtection(
+  signer: ethers.Signer,
+  tokenAddress: string,
+  maxAmount: bigint,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const vault = getGuardianVaultContract(signer, network);
+  const tx = await vault.setUserMaxProtection(tokenAddress, maxAmount);
+  return tx.wait();
 }
 
 export async function enableProtection(signer: ethers.Signer, network: NetworkKey = DEFAULT_NETWORK) {

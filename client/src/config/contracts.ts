@@ -118,10 +118,30 @@ export const GUARDIAN_VAULT_ABI = [
   'function disableProtection()',
   'function withdraw(address token, uint256 amount)',
   'function withdrawAll(address token)',
+  'function registerToken(address token)',
+  'function unregisterToken(address token)',
+  'function getRegisteredTokens(address wallet) view returns (address[])',
+  'function isTokenRegistered(address wallet, address token) view returns (bool)',
+  'function userMaxProtection(address wallet, address token) view returns (uint256)',
+  'function getEffectiveCap(address wallet, address token) view returns (uint256)',
+  'function setUserMaxProtection(address token, uint256 maxAmount)',
+  'function threatRegistry() view returns (address)',
   'event ProtectionEnabled(address indexed wallet, uint256 timestamp)',
   'event ProtectionDisabled(address indexed wallet, uint256 timestamp)',
   'event TokensProtected(address indexed wallet, address indexed token, uint256 amount, uint8 threatLevel)',
   'event TokensWithdrawn(address indexed wallet, address indexed token, uint256 amount)',
+  'event TokenRegistered(address indexed wallet, address indexed token)',
+  'event TokenUnregistered(address indexed wallet, address indexed token)',
+  'event UserMaxProtectionUpdated(address indexed wallet, address indexed token, uint256 maxAmount)',
+] as const;
+
+export const ERC20_ABI = [
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function decimals() view returns (uint8)',
+  'function balanceOf(address account) view returns (uint256)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
 ] as const;
 
 export const THREAT_REGISTRY_ABI = [

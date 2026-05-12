@@ -4,6 +4,7 @@ import { useProtection } from '../hooks/useProtection';
 import ConnectWallet from '../components/wallet/ConnectWallet';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import TokenApproval from '../components/features/TokenApproval';
 import { formatDuration, formatDateTime } from '../utils/formatters';
 
 export default function Protection() {
@@ -133,6 +134,8 @@ export default function Protection() {
             )}
           </div>
         </Card>
+
+        {isProtected && address && <TokenApproval walletAddress={address} />}
 
         {/* How It Works */}
         <Card>
