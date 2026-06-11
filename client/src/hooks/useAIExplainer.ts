@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 
-const PROXY_URL = import.meta.env.VITE_ANTHROPIC_PROXY_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// ── API config ────────────────────────────────────────────────────────
+const GEMINI_API_KEY    = import.meta.env.VITE_GEMINI_API_KEY    || '';
+const PROXY_URL         = import.meta.env.VITE_ANTHROPIC_PROXY_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY  || '';
 
 const SECURITY_SYSTEM_PROMPT = `You are GuardDog AI — an expert DeFi security analyst. 
 You provide concise, accurate, plain-language security analysis.
@@ -11,28 +13,58 @@ You provide concise, accurate, plain-language security analysis.
 - Never exceed 200 words unless asked.
 - Always end with a clear verdict: SAFE / CAUTION / DANGER.`;
 
+// ── Gemini REST call (primary) ────────────────────────────────────────
+async function callGemini(userPrompt: string): Promise<string> {
+  if (!GEMINI_API_KEY) throw new Error('VITE_GEMINI_API_KEY not configured');
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SECURITY_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { maxOutputTokens: 400, temperature: 0.3 },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// ── Claude via Supabase proxy (fallback) ──────────────────────────────
 async function callClaude(userPrompt: string): Promise<string> {
   if (!PROXY_URL) throw new Error('VITE_ANTHROPIC_PROXY_URL not configured');
-
   const res = await fetch(PROXY_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     body: JSON.stringify({
       system: SECURITY_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
       max_tokens: 400,
     }),
   });
-
   if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
   const data = await res.json();
   return data.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '';
 }
 
+// ── Unified AI — Gemini first, Claude fallback ────────────────────────
+async function callAI(userPrompt: string): Promise<{ text: string; provider: 'gemini' | 'claude' }> {
+  if (GEMINI_API_KEY) {
+    try {
+      const text = await callGemini(userPrompt);
+      if (text) return { text, provider: 'gemini' };
+    } catch (err) {
+      console.warn('Gemini failed, falling back to Claude:', err);
+    }
+  }
+  const text = await callClaude(userPrompt);
+  return { text, provider: 'claude' };
+}
 
+// ── Feature 1: Threat Explainer ───────────────────────────────────────
 export interface ThreatData {
   contractAddress: string;
   threatType: string;
@@ -46,14 +78,12 @@ export interface ThreatData {
 
 export function useThreatExplainer() {
   const [explanation, setExplanation] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string>('');
+  const [provider, setProvider]       = useState<'gemini' | 'claude' | null>(null);
 
   const explain = useCallback(async (threat: ThreatData) => {
-    setLoading(true);
-    setError('');
-    setExplanation('');
-
+    setLoading(true); setError(''); setExplanation('');
     try {
       const prompt = `Analyze this DeFi threat report and explain it in plain English:
 
@@ -73,9 +103,8 @@ Explain:
 4. How GuardDog's autonomous protection would respond
 
 Be specific about the mechanics. End with SAFE / CAUTION / DANGER verdict.`;
-
-      const result = await callClaude(prompt);
-      setExplanation(result);
+      const { text, provider: p } = await callAI(prompt);
+      setExplanation(text); setProvider(p);
     } catch (err: any) {
       setError(err.message || 'Failed to generate explanation');
     } finally {
@@ -83,103 +112,51 @@ Be specific about the mechanics. End with SAFE / CAUTION / DANGER verdict.`;
     }
   }, []);
 
-  const reset = useCallback(() => {
-    setExplanation('');
-    setError('');
-  }, []);
-
-  return { explanation, loading, error, explain, reset };
+  const reset = useCallback(() => { setExplanation(''); setError(''); setProvider(null); }, []);
+  return { explanation, loading, error, provider, explain, reset };
 }
 
-
-export interface RiskFactor {
-  label: string;
-  impact: number;
-  description: string;
-}
+// ── Feature 2: Wallet Risk Score ──────────────────────────────────────
+export interface RiskFactor { label: string; impact: number; description: string; }
 
 export interface WalletRiskData {
-  score: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  color: string;
-  factors: RiskFactor[];
-  aiInsight: string;
-  loading: boolean;
-  error: string;
+  score: number; grade: 'A' | 'B' | 'C' | 'D' | 'F'; color: string;
+  factors: RiskFactor[]; aiInsight: string; loading: boolean; error: string;
 }
 
 export function computeRiskScore(params: {
-  isProtected: boolean;
-  threatCount: number;
-  maxThreatLevel: number;
-  verifiedThreats: number;
-  isCorrectNetwork: boolean;
-  protectionDays: number;
+  isProtected: boolean; threatCount: number; maxThreatLevel: number;
+  verifiedThreats: number; isCorrectNetwork: boolean; protectionDays: number;
 }): { score: number; factors: RiskFactor[] } {
   const factors: RiskFactor[] = [];
   let score = 100;
 
   if (!params.isProtected) {
     score -= 25;
-    factors.push({
-      label: 'No Active Protection',
-      impact: -25,
-      description: 'GuardDog agent is not monitoring this wallet',
-    });
+    factors.push({ label: 'No Active Protection', impact: -25, description: 'GuardDog agent is not monitoring this wallet' });
   } else {
-    factors.push({
-      label: 'GuardDog Active',
-      impact: 0,
-      description: `Protected for ${params.protectionDays}+ days`,
-    });
+    factors.push({ label: 'GuardDog Active', impact: 0, description: `Protected for ${params.protectionDays}+ days` });
   }
-
   if (params.threatCount > 0) {
-    const deduction = Math.min(params.threatCount * 10, 35);
-    score -= deduction;
-    factors.push({
-      label: `${params.threatCount} Threat Report${params.threatCount > 1 ? 's' : ''} Nearby`,
-      impact: -deduction,
-      description: 'Community-reported threats in your monitored tokens',
-    });
+    const d = Math.min(params.threatCount * 10, 35); score -= d;
+    factors.push({ label: `${params.threatCount} Threat Report${params.threatCount > 1 ? 's' : ''} Nearby`, impact: -d, description: 'Community-reported threats in your monitored tokens' });
   }
-
   if (params.maxThreatLevel >= 75) {
     score -= 20;
-    factors.push({
-      label: 'Critical Threat Detected',
-      impact: -20,
-      description: `Highest threat score: ${params.maxThreatLevel}/100`,
-    });
+    factors.push({ label: 'Critical Threat Detected', impact: -20, description: `Highest threat score: ${params.maxThreatLevel}/100` });
   } else if (params.maxThreatLevel >= 50) {
     score -= 10;
-    factors.push({
-      label: 'Moderate Threat Detected',
-      impact: -10,
-      description: `Highest threat score: ${params.maxThreatLevel}/100`,
-    });
+    factors.push({ label: 'Moderate Threat Detected', impact: -10, description: `Highest threat score: ${params.maxThreatLevel}/100` });
   }
-
   if (params.verifiedThreats > 0) {
     score -= 15;
-    factors.push({
-      label: `${params.verifiedThreats} Verified Threat${params.verifiedThreats > 1 ? 's' : ''}`,
-      impact: -15,
-      description: 'Community-verified malicious contracts',
-    });
+    factors.push({ label: `${params.verifiedThreats} Verified Threat${params.verifiedThreats > 1 ? 's' : ''}`, impact: -15, description: 'Community-verified malicious contracts' });
   }
-
   if (!params.isCorrectNetwork) {
     score -= 5;
-    factors.push({
-      label: 'Unsupported Network',
-      impact: -5,
-      description: 'Protection contracts not deployed on this chain',
-    });
+    factors.push({ label: 'Unsupported Network', impact: -5, description: 'Protection contracts not deployed on this chain' });
   }
-
-  score = Math.max(0, Math.min(100, score));
-  return { score, factors };
+  return { score: Math.max(0, Math.min(100, score)), factors };
 }
 
 export function getGradeFromScore(score: number): { grade: 'A' | 'B' | 'C' | 'D' | 'F'; color: string; label: string } {
@@ -191,14 +168,11 @@ export function getGradeFromScore(score: number): { grade: 'A' | 'B' | 'C' | 'D'
 }
 
 export function useWalletRiskAI() {
-  const [insight, setInsight] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [insight, setInsight]   = useState<string>('');
+  const [loading, setLoading]   = useState(false);
+  const [provider, setProvider] = useState<'gemini' | 'claude' | null>(null);
 
-  const generateInsight = useCallback(async (
-    score: number,
-    factors: RiskFactor[],
-    address: string
-  ) => {
+  const generateInsight = useCallback(async (score: number, factors: RiskFactor[], address: string) => {
     setLoading(true);
     try {
       const factorList = factors.map(f => `${f.label} (${f.impact > 0 ? '+' : ''}${f.impact}): ${f.description}`).join('\n');
@@ -209,50 +183,36 @@ Risk Factors:
 ${factorList}
 
 Give a 2-sentence security insight: what the biggest risk is right now and the single most important action this wallet owner should take. Be direct.`;
-
-      const result = await callClaude(prompt);
-      setInsight(result);
-    } catch {
-      setInsight('');
-    } finally {
-      setLoading(false);
-    }
+      const { text, provider: p } = await callAI(prompt);
+      setInsight(text); setProvider(p);
+    } catch { setInsight(''); }
+    finally { setLoading(false); }
   }, []);
 
-  return { insight, loading, generateInsight };
+  return { insight, loading, provider, generateInsight };
 }
 
-
+// ── Feature 3: Transaction Screener ──────────────────────────────────
 export interface TransactionRisk {
   level: 'safe' | 'caution' | 'danger';
-  score: number;
-  summary: string;
-  details: string;
-  recommendation: string;
+  score: number; summary: string; details: string;
+  recommendation: string; provider?: 'gemini' | 'claude';
 }
 
 export function useTransactionScreener() {
-  const [risk, setRisk] = useState<TransactionRisk | null>(null);
+  const [risk, setRisk]       = useState<TransactionRisk | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError]     = useState<string>('');
 
   const screenTransaction = useCallback(async (params: {
-    to: string;
-    data?: string;
-    value?: string;
-    from?: string;
-    threatScore?: number;
-    isVerifiedThreat?: boolean;
-    reportCount?: number;
+    to: string; data?: string; value?: string; from?: string;
+    threatScore?: number; isVerifiedThreat?: boolean; reportCount?: number;
   }) => {
-    setLoading(true);
-    setError('');
-    setRisk(null);
-
+    setLoading(true); setError(''); setRisk(null);
     try {
       const methodSig = params.data ? params.data.slice(0, 10) : '0x';
-      const hasData = params.data && params.data.length > 10;
-      const valueEth = params.value ? (parseInt(params.value, 16) / 1e18).toFixed(6) : '0';
+      const hasData   = params.data && params.data.length > 10;
+      const valueEth  = params.value ? (parseInt(params.value, 16) / 1e18).toFixed(6) : '0';
 
       const prompt = `Screen this blockchain transaction for security risks:
 
@@ -266,59 +226,36 @@ ThreatRegistry Score: ${params.threatScore ?? 'Not checked'}/100
 Verified Threat: ${params.isVerifiedThreat ? 'YES - FLAGGED' : 'No'}
 Community Reports: ${params.reportCount ?? 0}
 
-Known dangerous method signatures:
-- 0x095ea7b3: approve() — check if unlimited amount
-- 0x23b872dd: transferFrom() — check source/destination  
-- 0xa9059cbb: transfer() — standard transfer
-- 0x38ed1739: swapExactTokensForTokens() — DEX swap
+Known dangerous signatures:
+- 0x095ea7b3: approve()
+- 0x23b872dd: transferFrom()
+- 0xa9059cbb: transfer()
+- 0x38ed1739: swapExactTokensForTokens()
 
-Assess:
-1. Is the destination contract suspicious?
-2. What does this transaction likely do?
-3. What are the specific risks?
-4. Should the user proceed?
-
-Respond with:
+Respond with exactly:
 RISK_LEVEL: [SAFE|CAUTION|DANGER]
 SCORE: [0-100]
 SUMMARY: [one sentence]
-DETAILS: [2-3 sentences of specifics]
+DETAILS: [2-3 sentences]
 RECOMMENDATION: [one clear action]`;
 
-      const result = await callClaude(prompt);
-
-      const lines = result.split('\n');
+      const { text, provider: p } = await callAI(prompt);
+      const lines = text.split('\n');
       const get = (key: string) => {
         const line = lines.find(l => l.startsWith(key));
         return line ? line.split(':').slice(1).join(':').trim() : '';
       };
-
       const levelStr = get('RISK_LEVEL').toLowerCase();
-      const level: TransactionRisk['level'] =
-        levelStr === 'danger' ? 'danger' :
-        levelStr === 'caution' ? 'caution' : 'safe';
-
-      const scoreStr = get('SCORE');
-      const score = parseInt(scoreStr) || (level === 'danger' ? 85 : level === 'caution' ? 50 : 15);
-
-      setRisk({
-        level,
-        score,
-        summary: get('SUMMARY') || 'Transaction screened.',
-        details: get('DETAILS') || result,
+      const level: TransactionRisk['level'] = levelStr === 'danger' ? 'danger' : levelStr === 'caution' ? 'caution' : 'safe';
+      const score = parseInt(get('SCORE')) || (level === 'danger' ? 85 : level === 'caution' ? 50 : 15);
+      setRisk({ level, score, summary: get('SUMMARY') || 'Transaction screened.',
+        details: get('DETAILS') || text,
         recommendation: get('RECOMMENDATION') || (level === 'danger' ? 'Do not proceed.' : 'Proceed with caution.'),
-      });
-    } catch (err: any) {
-      setError(err.message || 'Failed to screen transaction');
-    } finally {
-      setLoading(false);
-    }
+        provider: p });
+    } catch (err: any) { setError(err.message || 'Failed to screen transaction'); }
+    finally { setLoading(false); }
   }, []);
 
-  const reset = useCallback(() => {
-    setRisk(null);
-    setError('');
-  }, []);
-
+  const reset = useCallback(() => { setRisk(null); setError(''); }, []);
   return { risk, loading, error, screenTransaction, reset };
 }

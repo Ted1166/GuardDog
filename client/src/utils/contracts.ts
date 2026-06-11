@@ -3,9 +3,26 @@ import {
   GUARDIAN_VAULT_ABI,
   THREAT_REGISTRY_ABI,
   getContractAddress,
+  NETWORKS,
   type NetworkKey,
   DEFAULT_NETWORK,
 } from '../config/contracts';
+
+// ── Gas limits per network (prevents RPC hang on slow testnets) ───────
+const GAS_LIMITS: Record<NetworkKey, bigint> = {
+  bscTestnet:   300_000n,
+  bscMainnet:   300_000n,
+  opBNBTestnet: 300_000n,
+  opBNBMainnet: 300_000n,
+  baseSepolia:  300_000n,
+  baseMainnet:  300_000n,
+  sepolia:      300_000n,
+};
+
+// ── Read-only provider (bypasses wallet origin restrictions) ──────────
+export function getReadProvider(network: NetworkKey = DEFAULT_NETWORK): ethers.JsonRpcProvider {
+  return new ethers.JsonRpcProvider(NETWORKS[network].rpcUrls[0]);
+}
 
 export function getGuardianVaultContract(
   signerOrProvider: ethers.Signer | ethers.Provider,
@@ -23,44 +40,66 @@ export function getThreatRegistryContract(
   return new ethers.Contract(address, THREAT_REGISTRY_ABI, signerOrProvider);
 }
 
-export async function enableProtection(signer: ethers.Signer, network: NetworkKey = DEFAULT_NETWORK) {
+export async function enableProtection(
+  signer: ethers.Signer,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
   const contract = getGuardianVaultContract(signer, network);
-  const tx = await contract.enableProtection();
+  const tx = await contract.enableProtection({ gasLimit: GAS_LIMITS[network] });
   return tx.wait();
 }
 
-export async function disableProtection(signer: ethers.Signer, network: NetworkKey = DEFAULT_NETWORK) {
+export async function disableProtection(
+  signer: ethers.Signer,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
   const contract = getGuardianVaultContract(signer, network);
-  const tx = await contract.disableProtection();
+  const tx = await contract.disableProtection({ gasLimit: GAS_LIMITS[network] });
   return tx.wait();
 }
 
 export async function checkProtectionStatus(
   address: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<boolean> {
-  const contract = getGuardianVaultContract(provider, network);
-  return contract.isWalletProtected(address);
+  try {
+    // Always use direct RPC for reads — avoids wallet origin blocks
+    const readProvider = getReadProvider(network);
+    const contract = getGuardianVaultContract(readProvider, network);
+    return await contract.isWalletProtected(address);
+  } catch {
+    return false;
+  }
 }
 
 export async function getProtectionDuration(
   address: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<bigint> {
-  const contract = getGuardianVaultContract(provider, network);
-  return contract.getProtectionDuration(address);
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getGuardianVaultContract(readProvider, network);
+    return await contract.getProtectionDuration(address);
+  } catch {
+    return 0n;
+  }
 }
 
 export async function getProtectedBalance(
   walletAddress: string,
   tokenAddress: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<bigint> {
-  const contract = getGuardianVaultContract(provider, network);
-  return contract.getProtectedBalance(walletAddress, tokenAddress);
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getGuardianVaultContract(readProvider, network);
+    return await contract.getProtectedBalance(walletAddress, tokenAddress);
+  } catch {
+    return 0n;
+  }
 }
 
 export async function withdrawTokens(
@@ -70,7 +109,7 @@ export async function withdrawTokens(
   network: NetworkKey = DEFAULT_NETWORK
 ) {
   const contract = getGuardianVaultContract(signer, network);
-  const tx = await contract.withdraw(tokenAddress, amount);
+  const tx = await contract.withdraw(tokenAddress, amount, { gasLimit: GAS_LIMITS[network] });
   return tx.wait();
 }
 
@@ -80,7 +119,7 @@ export async function withdrawAllTokens(
   network: NetworkKey = DEFAULT_NETWORK
 ) {
   const contract = getGuardianVaultContract(signer, network);
-  const tx = await contract.withdrawAll(tokenAddress);
+  const tx = await contract.withdrawAll(tokenAddress, { gasLimit: GAS_LIMITS[network] });
   return tx.wait();
 }
 
@@ -93,11 +132,16 @@ export async function reportThreat(
   network: NetworkKey = DEFAULT_NETWORK
 ) {
   const contract = getThreatRegistryContract(signer, network);
+
+  // ── uint8 cast — critical for ETH Sepolia / Base Sepolia storage ─────
+  const level = Math.min(255, Math.max(0, Math.round(threatLevel)));
+
   const tx = await contract.reportThreat(
     contractAddress,
-    threatLevel,
+    level,          // explicit uint8-safe integer
     threatType,
-    evidence
+    evidence,
+    { gasLimit: GAS_LIMITS[network] }
   );
   return tx.wait();
 }
@@ -109,31 +153,45 @@ export async function upvoteThreat(
   network: NetworkKey = DEFAULT_NETWORK
 ) {
   const contract = getThreatRegistryContract(signer, network);
-  const tx = await contract.upvoteReport(contractAddress, reportIndex);
+  const tx = await contract.upvoteReport(contractAddress, reportIndex, {
+    gasLimit: GAS_LIMITS[network],
+  });
   return tx.wait();
 }
 
 export async function getThreatReports(
   contractAddress: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ) {
-  const contract = getThreatRegistryContract(provider, network);
-  return contract.getAllReports(contractAddress);
+  try {
+    // Use direct RPC — avoids wallet provider origin blocks
+    const readProvider = getReadProvider(network);
+    const contract = getThreatRegistryContract(readProvider, network);
+    return await contract.getAllReports(contractAddress);
+  } catch {
+    return [];
+  }
 }
 
 export async function getThreatScore(
   contractAddress: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<number> {
-  const contract = getThreatRegistryContract(provider, network);
-  return contract.getAggregateThreatScore(contractAddress);
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getThreatRegistryContract(readProvider, network);
+    const score = await contract.getAggregateThreatScore(contractAddress);
+    return Number(score);
+  } catch {
+    return 0;
+  }
 }
 
 export async function getThreatStats(
   contractAddress: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<{
   totalReports: bigint;
@@ -141,43 +199,46 @@ export async function getThreatStats(
   avgThreatLevel: number;
   totalUpvotes: bigint;
 }> {
-  const contract = getThreatRegistryContract(provider, network);
-  const [totalReports, verifiedReports, avgThreatLevel, totalUpvotes] =
-    await contract.getThreatStats(contractAddress);
-
-  return {
-    totalReports,
-    verifiedReports,
-    avgThreatLevel,
-    totalUpvotes,
-  };
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getThreatRegistryContract(readProvider, network);
+    const [totalReports, verifiedReports, avgThreatLevel, totalUpvotes] =
+      await contract.getThreatStats(contractAddress);
+    return {
+      totalReports,
+      verifiedReports,
+      avgThreatLevel: Number(avgThreatLevel),
+      totalUpvotes,
+    };
+  } catch {
+    return { totalReports: 0n, verifiedReports: 0n, avgThreatLevel: 0, totalUpvotes: 0n };
+  }
 }
 
 export async function isVerifiedThreat(
   contractAddress: string,
-  provider: ethers.Provider,
+  _provider: ethers.Provider,
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<boolean> {
-  const contract = getThreatRegistryContract(provider, network);
-  return contract.isVerifiedThreat(contractAddress);
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getThreatRegistryContract(readProvider, network);
+    return await contract.isVerifiedThreat(contractAddress);
+  } catch {
+    return false;
+  }
 }
 
 export function parseContractError(error: any): string {
-  if (error.reason) {
-    return error.reason;
-  }
-  
-  if (error.data?.message) {
-    return error.data.message;
-  }
-  
+  if (error.reason) return error.reason;
+  if (error.data?.message) return error.data.message;
   if (error.message) {
     const match = error.message.match(/reason="([^"]+)"/);
-    if (match) {
-      return match[1];
-    }
+    if (match) return match[1];
+    // Clean up common RPC error noise
+    if (error.message.includes('user rejected')) return 'Transaction rejected by user.';
+    if (error.message.includes('insufficient funds')) return 'Insufficient funds for gas.';
     return error.message;
   }
-  
   return 'Transaction failed. Please try again.';
 }
