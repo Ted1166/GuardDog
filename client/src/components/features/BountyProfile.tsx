@@ -1,8 +1,10 @@
+// src/components/features/BountyProfile.tsx
 import { useState } from 'react';
 import { useBounties, useLeaderboard, BADGES, type BountyReport } from '../../hooks/useBounties';
 import { useWallet } from '../../hooks/useWallet';
 import { formatAddress } from '../../utils/formatters';
 
+// ── Progress bar ───────────────────────────────────────────────────────
 function ProgressBar({ percent, color }: { percent: number; color: string }) {
   return (
     <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
@@ -14,6 +16,7 @@ function ProgressBar({ percent, color }: { percent: number; color: string }) {
   );
 }
 
+// ── Badge card ─────────────────────────────────────────────────────────
 function BadgeCard({
   badge,
   earned,
@@ -54,6 +57,7 @@ function BadgeCard({
   );
 }
 
+// ── Report row ─────────────────────────────────────────────────────────
 function ReportRow({ report }: { report: BountyReport }) {
   const short = `${report.contractAddress.slice(0, 8)}...${report.contractAddress.slice(-6)}`;
   const date = new Date(report.timestamp * 1000).toLocaleDateString();
@@ -81,6 +85,7 @@ function ReportRow({ report }: { report: BountyReport }) {
   );
 }
 
+// ── Leaderboard ────────────────────────────────────────────────────────
 function Leaderboard({ currentAddress }: { currentAddress: string }) {
   const { entries, loading } = useLeaderboard();
 
@@ -131,26 +136,18 @@ function Leaderboard({ currentAddress }: { currentAddress: string }) {
   );
 }
 
+// ── Main component ─────────────────────────────────────────────────────
 export default function BountyProfile() {
   const { address } = useWallet();
   const profile = useBounties();
   const [tab, setTab] = useState<'profile' | 'leaderboard'>('profile');
-
-  if (profile.loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-32 bg-gray-800 rounded-xl animate-pulse" />
-        <div className="h-20 bg-gray-800 rounded-xl animate-pulse" />
-      </div>
-    );
-  }
 
   const { currentBadge, nextBadge, totalPoints, progressPercent, pointsToNext } = profile;
 
   return (
     <div className="space-y-5">
 
-      {/* Main profile card */}
+      {/* ── Main profile card ── */}
       <div
         className="rounded-xl border p-5"
         style={{
@@ -181,7 +178,7 @@ export default function BountyProfile() {
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-white">{totalPoints}</p>
-            <p className="text-xs text-gray-400">total points</p>
+            <p className="text-xs text-gray-400">{profile.loading ? <span className="animate-pulse">scanning chains...</span> : 'total points'}</p>
           </div>
         </div>
 
@@ -211,7 +208,7 @@ export default function BountyProfile() {
         </div>
       </div>
 
-      {/* Badge collection */}
+      {/* ── Badge collection ── */}
       <div>
         <p className="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">
           Badge Collection
@@ -227,7 +224,7 @@ export default function BountyProfile() {
         </div>
       </div>
 
-      {/* Points guide */}
+      {/* ── Points guide ── */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
           How to earn points
@@ -247,6 +244,7 @@ export default function BountyProfile() {
         </div>
       </div>
 
+      {/* ── Tabs: my reports / leaderboard ── */}
       <div>
         <div className="flex gap-1 bg-gray-900 p-1 rounded-lg mb-4">
           {(['profile', 'leaderboard'] as const).map(t => (

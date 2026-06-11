@@ -1,14 +1,19 @@
+// src/hooks/useBounties.ts
+// Computes community bounty points and badges from onchain ThreatRegistry activity
+
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { useWallet } from './useWallet';
 import { CONTRACT_ADDRESSES, NETWORKS, SUPPORTED_NETWORKS, type NetworkKey } from '../config/contracts';
 
+// ── ABI (only what we need) ───────────────────────────────────────────
 const REGISTRY_ABI = [
   'event ThreatReported(address indexed contractAddress, address indexed reporter, uint8 threatLevel, string threatType)',
   'event ReportUpvoted(address indexed contractAddress, uint256 reportIndex, address indexed voter)',
   'function getAllReports(address contractAddress) view returns (tuple(address reporter, uint256 timestamp, uint8 threatLevel, string threatType, string evidence, bool verified, uint256 upvotes)[])',
 ];
 
+// ── Badge tiers ───────────────────────────────────────────────────────
 export interface Badge {
   id: string;
   label: string;
@@ -61,11 +66,12 @@ export const BADGES: Badge[] = [
   },
 ];
 
+// ── Points system ─────────────────────────────────────────────────────
 const POINTS = {
   UNVERIFIED_REPORT: 10,
   VERIFIED_REPORT:   50,
   UPVOTE_RECEIVED:    5,
-  HIGH_THREAT_BONUS: 15,
+  HIGH_THREAT_BONUS: 15,   // threatLevel >= 75
 };
 
 export interface BountyReport {
@@ -108,9 +114,11 @@ async function fetchReportsForNetwork(
     const latestBlock = await provider.getBlockNumber();
     const fromBlock = Math.max(0, latestBlock - 50000);
 
+    // Get all ThreatReported events by this reporter
     const filter = contract.filters.ThreatReported(null, reporterAddress);
     const events: ethers.Log[] = [];
 
+    // Chunked fetch to avoid RPC limits
     const chunkSize = 3000;
     for (let start = fromBlock; start <= latestBlock; start += chunkSize) {
       const end = Math.min(start + chunkSize - 1, latestBlock);
@@ -135,12 +143,14 @@ async function fetchReportsForNetwork(
       const threatLevel = Number(parsed.args.threatLevel);
       const threatType: string = parsed.args.threatType;
 
+      // Fetch full report data to get verified + upvotes
       let verified = false;
       let upvotes = 0;
       let timestamp = Date.now() / 1000;
 
       try {
         const allReports = await contract.getAllReports(contractAddress);
+        // Find the report by this reporter
         for (const r of allReports) {
           if (r.reporter.toLowerCase() === reporterAddress.toLowerCase()) {
             verified = r.verified;
@@ -153,6 +163,7 @@ async function fetchReportsForNetwork(
         // Use defaults if fetch fails
       }
 
+      // Calculate points for this report
       let pts = verified ? POINTS.VERIFIED_REPORT : POINTS.UNVERIFIED_REPORT;
       if (threatLevel >= 75) pts += POINTS.HIGH_THREAT_BONUS;
       pts += upvotes * POINTS.UPVOTE_RECEIVED;
@@ -181,11 +192,13 @@ function computeProfile(reports: BountyReport[]): Omit<BountyProfile, 'loading' 
   const verifiedCount = reports.filter(r => r.verified).length;
   const totalUpvotesReceived = reports.reduce((sum, r) => sum + r.upvotes, 0);
 
+  // Current badge = highest tier unlocked
   const unlockedBadges = BADGES.filter(b => totalPoints >= b.minPoints);
   const currentBadge = unlockedBadges.length > 0
     ? unlockedBadges[unlockedBadges.length - 1]
     : null;
 
+  // Next badge
   const lockedBadges = BADGES.filter(b => totalPoints < b.minPoints);
   const nextBadge = lockedBadges.length > 0 ? lockedBadges[0] : null;
 
@@ -210,6 +223,7 @@ function computeProfile(reports: BountyReport[]): Omit<BountyProfile, 'loading' 
   };
 }
 
+// ── Main hook ─────────────────────────────────────────────────────────
 export function useBounties(): BountyProfile {
   const { address } = useWallet();
   const [reports, setReports] = useState<BountyReport[]>([]);
@@ -221,14 +235,20 @@ export function useBounties(): BountyProfile {
     setLoading(true);
     setError('');
 
+    const withTimeout = (p: Promise<BountyReport[]>) =>
+      Promise.race([
+        p,
+        new Promise<BountyReport[]>(resolve => setTimeout(() => resolve([]), 8000)),
+      ]);
+
     try {
       const allResults = await Promise.all(
-        SUPPORTED_NETWORKS.map(n => fetchReportsForNetwork(n, address))
+        SUPPORTED_NETWORKS.map(n => withTimeout(fetchReportsForNetwork(n, address)))
       );
       const flat = allResults.flat().sort((a, b) => b.timestamp - a.timestamp);
       setReports(flat);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load bounty data');
+    } catch {
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -241,6 +261,7 @@ export function useBounties(): BountyProfile {
   return { ...profile, reports, loading, error };
 }
 
+// ── Leaderboard entry (lightweight — uses event logs only) ────────────
 export interface LeaderboardEntry {
   address: string;
   reportCount: number;
@@ -276,6 +297,7 @@ export function useLeaderboard(network: NetworkKey = 'bscTestnet') {
           } catch { /* skip */ }
         }
 
+        // Aggregate by reporter
         const reporters = new Map<string, { reportCount: number; points: number }>();
         for (const ev of allEvents) {
           const parsed = contract.interface.parseLog({ topics: ev.topics as string[], data: ev.data });

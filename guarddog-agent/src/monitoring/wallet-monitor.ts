@@ -14,6 +14,9 @@ export interface ThreatDetection {
   reason: string;
   shouldProtect: boolean;
   balance: bigint;
+  threatSource: 'community' | 'oklink' | 'both' | 'verified';
+  oklinkLevel?: string | null;
+  oklinkCategories?: string[];
 }
 
 export class WalletMonitor {
@@ -93,6 +96,9 @@ export class WalletMonitor {
               reason,
               shouldProtect,
               balance,
+              threatSource: 'community',
+              oklinkLevel: null,
+  oklinkCategories: [],
             });
 
             console.log(`🚨 THREAT DETECTED!`);

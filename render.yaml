@@ -3,9 +3,9 @@ services:
     name: guarddog-agent
     runtime: node
     rootDir: guarddog-agent
-    region: oregon                # Closest free-tier region
-    plan: free                    # Upgrade to starter for always-on
-    buildCommand: npm install
+    region: oregon
+    plan: free
+    buildCommand: npm install --include=dev
     startCommand: npm start
     healthCheckPath: /health
 
@@ -34,7 +34,7 @@ services:
 
       # ── Secrets (set manually in Render dashboard) ─────────────────
       - key: GUARDIAN_PRIVATE_KEY
-        sync: false               # Set in Render dashboard — never commit!
+        sync: false
       - key: MONITORED_WALLETS
         sync: false
       - key: MONITORED_TOKENS
@@ -67,3 +67,15 @@ services:
       # ── AI ────────────────────────────────────────────────────────
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # ── OKLink AML ────────────────────────────────────────────────
+      - key: OKLINK_API_KEY
+        sync: false
+
+      # ── MongoDB Atlas ─────────────────────────────────────────────
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: guarddog
