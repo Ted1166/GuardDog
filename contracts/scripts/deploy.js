@@ -8,14 +8,16 @@ const __dirname = path.dirname(__filename);
 
 // Explorer URLs per chain ID
 const EXPLORERS = {
-  97:      "https://testnet.bscscan.com",
-  56:      "https://bscscan.com",
-  5611:    "https://testnet.opbnbscan.com",
-  204:     "https://opbnbscan.com",
-  84532:   "https://sepolia.basescan.org",
-  8453:    "https://basescan.org",
-  11155111:"https://sepolia.etherscan.io",
-  1:       "https://etherscan.io",
+  97: "https://testnet.bscscan.com",
+  56: "https://bscscan.com",
+  5611: "https://testnet.opbnbscan.com",
+  204: "https://opbnbscan.com",
+  84532: "https://sepolia.basescan.org",
+  8453: "https://basescan.org",
+  11155111: "https://sepolia.etherscan.io",
+  1: "https://etherscan.io",
+  968: "https://testnet.botscans.net",
+  677: "https://scan.botchain.ai",
 };
 
 async function main() {

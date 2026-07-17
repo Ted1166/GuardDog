@@ -16,12 +16,27 @@ export default {
       chainId: 1337,
     },
 
-    // ── BNB Chain ────────────────────────────────────────────────
-    bscTestnet: {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
-      chainId: 97,
+    // BOTchain
+    botchainTestnet: {
+      url: "https://rpc.bohr.life",
+      chainId: 968,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 10000000000,
+      gasPrice: 50000000000,
+    },
+    botchainMainnet: {
+      url: "https://rpc.botchain.ai",
+      chainId: 677,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 3000000000,
+    },
+
+    // BNB Chain
+    botchainTestnet: {
+      url: "https://rpc.bohr.life",
+      chainId: 968,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 50000000000,
+      timeout: 120000,
     },
     bscMainnet: {
       url: "https://bsc-dataseed.binance.org",
@@ -30,7 +45,7 @@ export default {
       gasPrice: 3000000000,
     },
 
-    // ── opBNB (BNB Layer 2) ──────────────────────────────────────
+    // opBNB (BNB Layer 2)
     opBNBTestnet: {
       url: "https://opbnb-testnet-rpc.bnbchain.org",
       chainId: 5611,
@@ -44,7 +59,7 @@ export default {
       gasPrice: 1000000000,
     },
 
-    // ── Base (Coinbase L2) ───────────────────────────────────────
+    // Base (Coinbase L2)
     baseSepolia: {
       url: "https://sepolia.base.org",
       chainId: 84532,
@@ -58,7 +73,7 @@ export default {
       gasPrice: 1000000000,
     },
 
-    // ── Ethereum ─────────────────────────────────────────────────
+    // Ethereum
     sepolia: {
       url: "https://ethereum-sepolia-rpc.publicnode.com",
       chainId: 11155111,
