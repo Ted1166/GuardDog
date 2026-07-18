@@ -1,0 +1,12 @@
+{
+  "network": "botchainTestnet",
+  "chainId": 968,
+  "deployer": "0x2ec236a1e06715712749BCA3c7D242c3b9caE6D7",
+  "timestamp": "2026-07-18T19:49:09.069Z",
+  "gasUsed": "4651541",
+  "explorer": "https://testnet.botscans.net",
+  "contracts": {
+    "ThreatRegistry": "0x8de977504d2bfF46ecfD153B10cdb9F22715F988",
+    "GuardianVault": "0x02A8AdD3ECAE73Adb908048E70A9fe18156B3785"
+  }
+}

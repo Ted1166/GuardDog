@@ -18,10 +18,21 @@ export class GuardDogAgent {
   private startTime: number;
 
   constructor() {
+    // Determine RPC URL based on network
+    const network = process.env.NETWORK || 'bscTestnet';
+    const rpcUrl = (() => {
+      switch (network) {
+        case 'botchainTestnet': return process.env.BOTCHAIN_TESTNET_RPC_URL || 'https://rpc.bohr.life';
+        case 'botchainMainnet': return process.env.BOTCHAIN_MAINNET_RPC_URL || 'https://rpc.botchain.ai';
+        case 'bscMainnet': return process.env.BSC_MAINNET_RPC_URL || 'https://bsc-dataseed.binance.org';
+        default: return process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545';
+      }
+    })();
+
     this.blockchain = new BlockchainService(
-      process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545',
+      rpcUrl,
       process.env.GUARDIAN_PRIVATE_KEY || '',
-      (process.env.NETWORK as 'bscTestnet' | 'bscMainnet') || 'bscTestnet'
+      (process.env.NETWORK as 'bscTestnet' | 'bscMainnet' | 'botchainTestnet' | 'botchainMainnet') || 'bscTestnet'
     );
     this.monitor = new WalletMonitor(
       this.blockchain,
@@ -32,11 +43,11 @@ export class GuardDogAgent {
       process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789',
       process.env.OPENCLAW_GATEWAY_TOKEN || '',
       {
-        telegramEnabled:  process.env.TELEGRAM_ENABLED === 'true',
-        telegramChatId:   process.env.TELEGRAM_CHAT_ID,
+        telegramEnabled: process.env.TELEGRAM_ENABLED === 'true',
+        telegramChatId: process.env.TELEGRAM_CHAT_ID,
         telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
-        whatsappEnabled:  process.env.WHATSAPP_ENABLED === 'true',
-        whatsappPhone:    process.env.WHATSAPP_PHONE,
+        whatsappEnabled: process.env.WHATSAPP_ENABLED === 'true',
+        whatsappPhone: process.env.WHATSAPP_PHONE,
       }
     );
     this.moltbook = new MoltbookService(
@@ -65,9 +76,10 @@ export class GuardDogAgent {
     console.log('✅ Guardian role verified\n');
 
     const balance = await this.blockchain.getBalance();
-    console.log(`Guardian Balance: ${ethers.formatEther(balance)} BNB`);
+    const nativeSymbol = process.env.NETWORK?.startsWith('botchain') ? 'BOT' : 'BNB';
+    console.log(`Guardian Balance: ${ethers.formatEther(balance)} ${nativeSymbol}`);
     if (balance < ethers.parseEther('0.01')) {
-      console.warn('⚠️  WARNING: Guardian balance is low. Please fund for gas fees.\n');
+      console.warn(`⚠️  WARNING: Guardian balance is low. Please fund with ${nativeSymbol} for gas fees.\n`);
     }
 
     console.log('🐕 GuardDog Agent Ready!\n');
@@ -99,25 +111,25 @@ export class GuardDogAgent {
         for (const detection of detections) {
           // Persist to MongoDB
           await mongoService.saveThreatDetection({
-            walletAddress:    detection.walletAddress,
-            tokenAddress:     detection.tokenAddress,
-            threatLevel:      detection.threatLevel,
-            reason:           detection.reason,
-            threatSource:     detection.threatSource || 'community',
-            oklinkLevel:      detection.oklinkLevel ?? null,
+            walletAddress: detection.walletAddress,
+            tokenAddress: detection.tokenAddress,
+            threatLevel: detection.threatLevel,
+            reason: detection.reason,
+            threatSource: detection.threatSource || 'community',
+            oklinkLevel: detection.oklinkLevel ?? null,
             oklinkCategories: detection.oklinkCategories ?? [],
-            network:          process.env.NETWORK || 'bscTestnet',
-            protected:        detection.shouldProtect,
-            txHash:           null,
+            network: process.env.NETWORK || 'bscTestnet',
+            protected: detection.shouldProtect,
+            txHash: null,
           });
 
           await this.messaging.sendAlert({
-            type:          'threat_detected',
+            type: 'threat_detected',
             walletAddress: detection.walletAddress,
-            tokenAddress:  detection.tokenAddress,
-            threatLevel:   detection.threatLevel,
-            message:       `Threat detected: ${detection.reason}`,
-            timestamp:     Date.now(),
+            tokenAddress: detection.tokenAddress,
+            threatLevel: detection.threatLevel,
+            message: `Threat detected: ${detection.reason}`,
+            timestamp: Date.now(),
           });
 
           await this.moltbook.postThreatDetection(
@@ -137,27 +149,27 @@ export class GuardDogAgent {
           if (txHash) {
             totalProtections += protectableDetections.length;
             const totalAmount = protectableDetections.reduce((sum, d) => sum + d.balance, 0n);
-            const amountStr   = ethers.formatEther(totalAmount);
+            const amountStr = ethers.formatEther(totalAmount);
 
             // Persist protection events to MongoDB
             for (const d of protectableDetections) {
               await mongoService.saveProtectionEvent({
                 walletAddress: walletAddress,
-                tokenAddress:  d.tokenAddress,
-                amount:        ethers.formatEther(d.balance),
-                threatLevel:   d.threatLevel,
+                tokenAddress: d.tokenAddress,
+                amount: ethers.formatEther(d.balance),
+                threatLevel: d.threatLevel,
                 txHash,
-                network:       process.env.NETWORK || 'bscTestnet',
-                reason:        d.reason,
+                network: process.env.NETWORK || 'bscTestnet',
+                reason: d.reason,
               });
             }
 
             await this.messaging.sendAlert({
-              type:         'protection_executed',
+              type: 'protection_executed',
               walletAddress,
               txHash,
-              message:      `Protected ${protectableDetections.length} tokens (${amountStr} total)`,
-              timestamp:    Date.now(),
+              message: `Protected ${protectableDetections.length} tokens (${amountStr} total)`,
+              timestamp: Date.now(),
             });
 
             await this.moltbook.postProtectionExecution(
@@ -174,17 +186,17 @@ export class GuardDogAgent {
 
       // Persist scan cycle to MongoDB
       await mongoService.saveScanCycle({
-        walletsScanned:      stats.totalWallets,
-        threatsFound:        totalThreats,
+        walletsScanned: stats.totalWallets,
+        threatsFound: totalThreats,
         protectionsExecuted: totalProtections,
-        network:             process.env.NETWORK || 'bscTestnet',
-        uptime:              this.getUptime(),
+        network: process.env.NETWORK || 'bscTestnet',
+        uptime: this.getUptime(),
       });
 
       await this.moltbook.postScanComplete(stats.totalWallets, totalThreats);
       await this.messaging.sendAlert({
-        type:      'scan_complete',
-        message:   `Scan complete: ${stats.totalWallets} wallets checked, ${totalThreats} threats found, ${totalProtections} protections executed`,
+        type: 'scan_complete',
+        message: `Scan complete: ${stats.totalWallets} wallets checked, ${totalThreats} threats found, ${totalProtections} protections executed`,
         timestamp: Date.now(),
       });
 
@@ -199,8 +211,8 @@ export class GuardDogAgent {
     } catch (error) {
       console.error('\n❌ Error during scan cycle:', error);
       await this.messaging.sendAlert({
-        type:      'system_status',
-        message:   `Error during scan cycle: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        type: 'system_status',
+        message: `Error during scan cycle: ${error instanceof Error ? error.message : 'Unknown error'}`,
         timestamp: Date.now(),
       });
     }
@@ -219,7 +231,7 @@ export class GuardDogAgent {
 
     // Post system status every 6 hours
     setInterval(async () => {
-      const stats   = await this.monitor.getMonitoringStats();
+      const stats = await this.monitor.getMonitoringStats();
       const dbStats = await mongoService.getStats();
       await this.moltbook.postSystemStatus(
         stats.totalWallets,
@@ -240,16 +252,16 @@ export class GuardDogAgent {
 
   getStatus() {
     return {
-      isRunning:        this.isRunning,
-      uptime:           this.getUptime(),
+      isRunning: this.isRunning,
+      uptime: this.getUptime(),
       monitoredWallets: this.monitor.getMonitoredWallets(),
-      mongoConnected:   mongoService.isConnected(),
+      mongoConnected: mongoService.isConnected(),
     };
   }
 
   private getUptime(): string {
-    const ms      = Date.now() - this.startTime;
-    const hours   = Math.floor(ms / (1000 * 60 * 60));
+    const ms = Date.now() - this.startTime;
+    const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   }
@@ -264,7 +276,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await agent.initialize();
 
     const wallets = (process.env.MONITORED_WALLETS || '').split(',').filter(Boolean);
-    const tokens  = (process.env.MONITORED_TOKENS  || '').split(',').filter(Boolean);
+    const tokens = (process.env.MONITORED_TOKENS || '').split(',').filter(Boolean);
     console.log(`🔍 Monitoring ${wallets.length} wallet(s) with ${tokens.length} token(s)`);
 
     if (wallets.length > 0) {
@@ -276,7 +288,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
 
     await agent.start();
-    process.on('SIGINT',  () => { agent.stop(); process.exit(0); });
+    process.on('SIGINT', () => { agent.stop(); process.exit(0); });
     process.on('SIGTERM', () => { agent.stop(); process.exit(0); });
 
   } catch (error) {

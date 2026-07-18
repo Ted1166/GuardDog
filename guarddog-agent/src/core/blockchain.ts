@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { GUARDIAN_VAULT_ABI, THREAT_REGISTRY_ABI, ERC20_ABI, getContractAddresses } from "../config/contracts.js";
+import { GUARDIAN_VAULT_ABI, THREAT_REGISTRY_ABI, ERC20_ABI, getContractAddresses, NetworkKey } from "../config/contracts.js";
 
 export interface ThreatReport {
   reporter: string;
@@ -22,19 +22,19 @@ export class BlockchainService {
   private guardianWallet: ethers.Wallet;
   private vaultContract: ethers.Contract;
   private registryContract: ethers.Contract;
-  private network: 'bscTestnet' | 'bscMainnet';
+  private network: NetworkKey;
 
   constructor(
     rpcUrl: string,
     guardianPrivateKey: string,
-    network: 'bscTestnet' | 'bscMainnet' = 'bscTestnet'
+    network: NetworkKey = 'bscTestnet'
   ) {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.guardianWallet = new ethers.Wallet(guardianPrivateKey, this.provider);
     this.network = network;
 
     const addresses = getContractAddresses(network);
-    
+
     this.vaultContract = new ethers.Contract(
       addresses.GuardianVault,
       GUARDIAN_VAULT_ABI,
@@ -141,7 +141,7 @@ export class BlockchainService {
 
       console.log(`   Transaction hash: ${tx.hash}`);
       const receipt = await tx.wait();
-      
+
       console.log(`✅ Protection executed! Block: ${receipt.blockNumber}`);
       return tx.hash;
     } catch (error: any) {

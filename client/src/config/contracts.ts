@@ -1,43 +1,53 @@
-// ── Contract Addresses ───────────────────────────────────────────
+// Contract Addresses
 export const CONTRACT_ADDRESSES = {
   // BNB Chain Testnet
   bscTestnet: {
-    GuardianVault:  '0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9',
+    GuardianVault: '0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9',
     ThreatRegistry: '0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9',
   },
   // BNB Chain Mainnet
   bscMainnet: {
-    GuardianVault:  '',
+    GuardianVault: '',
     ThreatRegistry: '',
   },
   // opBNB Testnet (deploying)
   opBNBTestnet: {
-    GuardianVault:  '0x6994b39F3bCD0D33029EfD95d15F72310227aD78',
+    GuardianVault: '0x6994b39F3bCD0D33029EfD95d15F72310227aD78',
     ThreatRegistry: '0xBB4Bd19224bB19f36C1BD97aE8014c0f51D0c383',
   },
   // opBNB Mainnet
   opBNBMainnet: {
-    GuardianVault:  '',
+    GuardianVault: '',
     ThreatRegistry: '',
   },
   // Base Sepolia Testnet (deploying )
   baseSepolia: {
-    GuardianVault:  '0xEF650672437A97A7b987984239064D502F56272d',
+    GuardianVault: '0xEF650672437A97A7b987984239064D502F56272d',
     ThreatRegistry: '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
   },
   // Base Mainnet
   baseMainnet: {
-    GuardianVault:  '',
+    GuardianVault: '',
     ThreatRegistry: '',
   },
   // Ethereum Sepolia Testnet (deploying)
   sepolia: {
-    GuardianVault:  '0x9B05c7A71a02F39B18e979E4F84b784aFed3c284',
+    GuardianVault: '0x9B05c7A71a02F39B18e979E4F84b784aFed3c284',
     ThreatRegistry: '0xf033A7Ff995a2A87C2ba4748bfF7626D6482Da64',
+  },
+  // BOTchain Testnet
+  botchainTestnet: {
+    GuardianVault: '0x02A8AdD3ECAE73Adb908048E70A9fe18156B3785',
+    ThreatRegistry: '0x8de977504d2bfF46ecfD153B10cdb9F22715F988',
+  },
+  // BOTchain Mainnet
+  botchainMainnet: {
+    GuardianVault: '',
+    ThreatRegistry: '',
   },
 } as const;
 
-// ── Network Configuration ─────────────────────────────────────────
+// Network Configuration
 export const NETWORKS = {
   bscTestnet: {
     chainId: '0x61',
@@ -88,24 +98,40 @@ export const NETWORKS = {
     rpcUrls: ['https://rpc.sepolia.org'],
     blockExplorerUrls: ['https://sepolia.etherscan.io'],
   },
+  botchainTestnet: {
+    chainId: '0x3C8',
+    chainName: 'BOTchain Testnet',
+    nativeCurrency: { name: 'BOT', symbol: 'tBOT', decimals: 18 },
+    rpcUrls: ['https://rpc.bohr.life'],
+    blockExplorerUrls: ['https://scan.bohr.life'],
+  },
+  botchainMainnet: {
+    chainId: '0x2A5',
+    chainName: 'BOT Chain',
+    nativeCurrency: { name: 'BOT', symbol: 'BOT', decimals: 18 },
+    rpcUrls: ['https://rpc.botchain.ai'],
+    blockExplorerUrls: ['https://scan.botchain.ai'],
+  },
 } as const;
 
 export type NetworkKey = keyof typeof NETWORKS;
 export const DEFAULT_NETWORK: NetworkKey = 'bscTestnet';
-export const SUPPORTED_NETWORKS: NetworkKey[] = ['bscTestnet', 'opBNBTestnet', 'baseSepolia', 'sepolia'];
+export const SUPPORTED_NETWORKS: NetworkKey[] = ['bscTestnet', 'opBNBTestnet', 'baseSepolia', 'sepolia', 'botchainTestnet'];
 
 // Chain ID → network key map (for auto-detection from MetaMask)
 export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {
-  '97':       'bscTestnet',
-  '56':       'bscMainnet',
-  '5611':     'opBNBTestnet',
-  '204':      'opBNBMainnet',
-  '84532':    'baseSepolia',
-  '8453':     'baseMainnet',
+  '97': 'bscTestnet',
+  '56': 'bscMainnet',
+  '5611': 'opBNBTestnet',
+  '204': 'opBNBMainnet',
+  '84532': 'baseSepolia',
+  '8453': 'baseMainnet',
   '11155111': 'sepolia',
+  '968': 'botchainTestnet',
+  '677': 'botchainMainnet',
 };
 
-// ── ABIs ──────────────────────────────────────────────────────────
+// ABIs
 export const GUARDIAN_VAULT_ABI = [
   'function isProtected(address wallet) view returns (bool)',
   'function protectionStartTime(address wallet) view returns (uint256)',
@@ -149,7 +175,7 @@ export const THREAT_REGISTRY_ABI = [
   'event ThreatVerified(address indexed contractAddress, uint256 reportIndex, bool verified)',
 ] as const;
 
-// ── Helpers ───────────────────────────────────────────────────────
+// Helpers
 export function getContractAddress(
   contractName: 'GuardianVault' | 'ThreatRegistry',
   network: NetworkKey = DEFAULT_NETWORK
@@ -170,13 +196,15 @@ export function getNetworkFromChainId(chainId: number | string): NetworkKey {
 }
 
 export const BLOCK_EXPLORER = {
-  bscTestnet:  'https://testnet.bscscan.com',
-  bscMainnet:  'https://bscscan.com',
-  opBNBTestnet:'https://testnet.opbnbscan.com',
-  opBNBMainnet:'https://opbnbscan.com',
+  bscTestnet: 'https://testnet.bscscan.com',
+  bscMainnet: 'https://bscscan.com',
+  opBNBTestnet: 'https://testnet.opbnbscan.com',
+  opBNBMainnet: 'https://opbnbscan.com',
   baseSepolia: 'https://sepolia.basescan.org',
   baseMainnet: 'https://basescan.org',
-  sepolia:     'https://sepolia.etherscan.io',
+  sepolia: 'https://sepolia.etherscan.io',
+  botchainTestnet: 'https://scan.bohr.life',
+  botchainMainnet: 'https://scan.botchain.ai',
 } as const;
 
 export function getExplorerUrl(
@@ -186,9 +214,9 @@ export function getExplorerUrl(
 ): string {
   const base = BLOCK_EXPLORER[network];
   switch (type) {
-    case 'tx':      return `${base}/tx/${value}`;
+    case 'tx': return `${base}/tx/${value}`;
     case 'address': return `${base}/address/${value}`;
-    case 'token':   return `${base}/token/${value}`;
-    default:        return base;
+    case 'token': return `${base}/token/${value}`;
+    default: return base;
   }
 }
