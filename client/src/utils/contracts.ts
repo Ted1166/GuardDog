@@ -10,13 +10,15 @@ import {
 
 // ── Gas limits per network (prevents RPC hang on slow testnets) ───────
 const GAS_LIMITS: Record<NetworkKey, bigint> = {
-  bscTestnet:   300_000n,
-  bscMainnet:   300_000n,
+  bscTestnet: 300_000n,
+  bscMainnet: 300_000n,
   opBNBTestnet: 300_000n,
   opBNBMainnet: 300_000n,
-  baseSepolia:  300_000n,
-  baseMainnet:  300_000n,
-  sepolia:      300_000n,
+  baseSepolia: 300_000n,
+  baseMainnet: 300_000n,
+  sepolia: 300_000n,
+  botchainTestnet: 500000n,
+  botchainMainnet: 500000n,
 };
 
 // ── Read-only provider (bypasses wallet origin restrictions) ──────────
