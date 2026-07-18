@@ -4,6 +4,7 @@ import { useProtection } from '../hooks/useProtection';
 import ConnectWallet from '../components/wallet/ConnectWallet';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import RecoveryAddress from '../components/features/RecoveryAddress';
 import { formatDuration, formatDateTime } from '../utils/formatters';
 
 export default function Protection() {
@@ -134,6 +135,9 @@ export default function Protection() {
           </div>
         </Card>
 
+        {/* Recovery Address */}
+        <RecoveryAddress />
+
         {/* How It Works */}
         <Card>
           <h2 className="text-xl font-semibold text-white mb-4">
@@ -160,6 +164,21 @@ export default function Protection() {
               </div>
               <div>
                 <h3 className="text-white font-medium mb-1">
+                  Set a Recovery Address
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  Designate a backup wallet that can retrieve rescued funds if
+                  this wallet's key is ever compromised
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold">
+                3
+              </div>
+              <div>
+                <h3 className="text-white font-medium mb-1">
                   Approve Tokens
                 </h3>
                 <p className="text-gray-400 text-sm">
@@ -171,7 +190,7 @@ export default function Protection() {
 
             <div className="flex gap-4">
               <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold">
-                3
+                4
               </div>
               <div>
                 <h3 className="text-white font-medium mb-1">24/7 Monitoring</h3>
@@ -183,7 +202,7 @@ export default function Protection() {
 
             <div className="flex gap-4">
               <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold">
-                4
+                5
               </div>
               <div>
                 <h3 className="text-white font-medium mb-1">
@@ -257,6 +276,10 @@ export default function Protection() {
                 </li>
                 <li>• You can withdraw protected tokens at any time</li>
                 <li>• Disabling protection does not affect already protected tokens</li>
+                <li>
+                  • Set a recovery address while your key is safe — changing it
+                  later requires a 48-hour timelock
+                </li>
               </ul>
             </div>
           </div>
