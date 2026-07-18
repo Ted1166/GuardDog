@@ -123,6 +123,61 @@ export async function withdrawAllTokens(
   return tx.wait();
 }
 
+export interface RecoveryInfo {
+  recovery: string;
+  pending: string;
+  eta: bigint;
+}
+
+export async function getRecoveryInfo(
+  walletAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
+): Promise<RecoveryInfo> {
+  try {
+    const readProvider = getReadProvider(network);
+    const contract = getGuardianVaultContract(readProvider, network);
+    const [recovery, pending, eta] = await Promise.all([
+      contract.recoveryAddress(walletAddress),
+      contract.pendingRecoveryAddress(walletAddress),
+      contract.recoveryChangeEta(walletAddress),
+    ]);
+    return { recovery, pending, eta };
+  } catch {
+    // Older vault deployments don't have the recovery functions yet
+    return { recovery: ethers.ZeroAddress, pending: ethers.ZeroAddress, eta: 0n };
+  }
+}
+
+export async function setRecoveryAddress(
+  signer: ethers.Signer,
+  newRecovery: string,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const contract = getGuardianVaultContract(signer, network);
+  const tx = await contract.setRecoveryAddress(newRecovery, { gasLimit: GAS_LIMITS[network] });
+  return tx.wait();
+}
+
+export async function finalizeRecoveryChange(
+  signer: ethers.Signer,
+  walletAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const contract = getGuardianVaultContract(signer, network);
+  const tx = await contract.finalizeRecoveryChange(walletAddress, { gasLimit: GAS_LIMITS[network] });
+  return tx.wait();
+}
+
+export async function cancelRecoveryChange(
+  signer: ethers.Signer,
+  walletAddress: string,
+  network: NetworkKey = DEFAULT_NETWORK
+) {
+  const contract = getGuardianVaultContract(signer, network);
+  const tx = await contract.cancelRecoveryChange(walletAddress, { gasLimit: GAS_LIMITS[network] });
+  return tx.wait();
+}
+
 export async function reportThreat(
   signer: ethers.Signer,
   contractAddress: string,
