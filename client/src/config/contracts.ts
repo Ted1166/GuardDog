@@ -42,8 +42,8 @@ export const CONTRACT_ADDRESSES = {
   },
   // BOTchain Mainnet
   botchainMainnet: {
-    GuardianVault: '',
-    ThreatRegistry: '',
+    GuardianVault: '0xEF650672437A97A7b987984239064D502F56272d',
+    ThreatRegistry: '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
   },
 } as const;
 

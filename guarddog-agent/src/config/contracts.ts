@@ -35,6 +35,11 @@ export type NetworkKey = 'bscTestnet' | 'bscMainnet' | 'botchainTestnet' | 'botc
 
 export function getContractAddresses(network: NetworkKey): ContractAddresses {
   switch (network) {
+    case 'botchainMainnet':
+      return {
+        GuardianVault: process.env.BOTCHAIN_MAINNET_GUARDIAN_VAULT || '0xEF650672437A97A7b987984239064D502F56272d',
+        ThreatRegistry: process.env.BOTCHAIN_MAINNET_THREAT_REGISTRY || '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
+      };
     case 'botchainTestnet':
       return {
         GuardianVault: process.env.BOTCHAIN_GUARDIAN_VAULT || '0xEF650672437A97A7b987984239064D502F56272d',

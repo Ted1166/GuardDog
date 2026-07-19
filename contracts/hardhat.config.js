@@ -28,7 +28,8 @@ export default {
       url: "https://rpc.botchain.ai",
       chainId: 677,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 3000000000,
+      gasPrice: 60000000000,
+      timeout: 120000,
     },
 
     // BNB Chain
