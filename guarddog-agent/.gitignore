@@ -1,1 +1,27 @@
-/node_modules
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# Editor/OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Coverage
+coverage/
