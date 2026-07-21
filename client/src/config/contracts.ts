@@ -116,7 +116,18 @@ export const NETWORKS = {
 
 export type NetworkKey = keyof typeof NETWORKS;
 export const DEFAULT_NETWORK: NetworkKey = 'botchainMainnet';
-export const SUPPORTED_NETWORKS: NetworkKey[] = ['botchainMainnet', 'botchainTestnet'];
+// Only networks with real deployed contract addresses are listed here —
+// bscMainnet/opBNBMainnet/baseMainnet have empty addresses in
+// CONTRACT_ADDRESSES (never actually deployed), so selecting them would
+// immediately throw "not yet deployed" in getContractAddress().
+export const SUPPORTED_NETWORKS: NetworkKey[] = [
+  'botchainMainnet',
+  'botchainTestnet',
+  'bscTestnet',
+  'opBNBTestnet',
+  'baseSepolia',
+  'sepolia',
+];
 
 // Chain ID → network key map (for auto-detection from MetaMask)
 export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {
