@@ -6,6 +6,9 @@ import { MoltbookService } from './messaging/moltbook.js';
 import { createServer } from './api/server.js';
 import { mongoService } from './db/mongodb.js';
 import { ethers } from 'ethers';
+import type { NetworkKey } from './config/contracts.js';
+import { getRpcUrl, getGuardianPrivateKey, getExpectedChainId, getNativeSymbol, getWssUrl } from './config/network.js';
+import { ThreatEventListener } from './monitoring/event-listener.js';
 
 export class GuardDogAgent {
   private blockchain: BlockchainService;
@@ -16,23 +19,17 @@ export class GuardDogAgent {
   private isRunning: boolean = false;
   private intervalHandle?: NodeJS.Timeout;
   private startTime: number;
+  private network: NetworkKey;
+  private eventListener?: ThreatEventListener;
 
   constructor() {
-    // Determine RPC URL based on network
-    const network = process.env.NETWORK || 'bscTestnet';
-    const rpcUrl = (() => {
-      switch (network) {
-        case 'botchainTestnet': return process.env.BOTCHAIN_TESTNET_RPC_URL || 'https://rpc.bohr.life';
-        case 'botchainMainnet': return process.env.BOTCHAIN_MAINNET_RPC_URL || 'https://rpc.botchain.ai';
-        case 'bscMainnet': return process.env.BSC_MAINNET_RPC_URL || 'https://bsc-dataseed.binance.org';
-        default: return process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545';
-      }
-    })();
+    this.network = (process.env.NETWORK as NetworkKey) || 'bscTestnet';
+    const rpcUrl = getRpcUrl(this.network);
 
     this.blockchain = new BlockchainService(
       rpcUrl,
-      process.env.GUARDIAN_PRIVATE_KEY || '',
-      (process.env.NETWORK as 'bscTestnet' | 'bscMainnet' | 'botchainTestnet' | 'botchainMainnet') || 'bscTestnet'
+      getGuardianPrivateKey(this.network),
+      this.network
     );
     this.monitor = new WalletMonitor(
       this.blockchain,
@@ -58,6 +55,13 @@ export class GuardDogAgent {
     );
     this.monitorInterval = parseInt(process.env.MONITOR_INTERVAL_MINUTES || '5') * 60 * 1000;
     this.startTime = Date.now();
+
+    const wssUrl = getWssUrl(this.network);
+    if (wssUrl) {
+      this.eventListener = new ThreatEventListener(wssUrl, this.network, this.messaging, () =>
+        this.runScanCycle()
+      );
+    }
   }
 
   async initialize(): Promise<void> {
@@ -65,6 +69,14 @@ export class GuardDogAgent {
 
     // ── MongoDB ──────────────────────────────────────────────────────
     await mongoService.connect();
+
+    const expectedChainId = getExpectedChainId(this.network);
+    const actualChainId = await this.blockchain.getChainId();
+    if (actualChainId !== expectedChainId) {
+      throw new Error(
+        `❌ ChainId mismatch: NETWORK="${this.network}" expects chainId ${expectedChainId} but the RPC returned ${actualChainId}. Check your RPC URL configuration.`
+      );
+    }
 
     const guardianAddress = await this.blockchain.getGuardianAddress();
     console.log(`Guardian Address: ${guardianAddress}`);
@@ -76,7 +88,7 @@ export class GuardDogAgent {
     console.log('✅ Guardian role verified\n');
 
     const balance = await this.blockchain.getBalance();
-    const nativeSymbol = process.env.NETWORK?.startsWith('botchain') ? 'BOT' : 'BNB';
+    const nativeSymbol = getNativeSymbol(this.network);
     console.log(`Guardian Balance: ${ethers.formatEther(balance)} ${nativeSymbol}`);
     if (balance < ethers.parseEther('0.01')) {
       console.warn(`⚠️  WARNING: Guardian balance is low. Please fund with ${nativeSymbol} for gas fees.\n`);
@@ -229,6 +241,12 @@ export class GuardDogAgent {
       await this.runScanCycle();
     }, this.monitorInterval);
 
+    if (this.eventListener) {
+      this.eventListener.start();
+    } else {
+      console.log('ℹ️  No WSS endpoint for this network — running on polling only.');
+    }
+
     // Post system status every 6 hours
     setInterval(async () => {
       const stats = await this.monitor.getMonitoringStats();
@@ -245,6 +263,7 @@ export class GuardDogAgent {
     if (!this.isRunning) return;
     console.log('\n🛑 Stopping autonomous monitoring...\n');
     if (this.intervalHandle) clearInterval(this.intervalHandle);
+    this.eventListener?.stop();
     this.isRunning = false;
     mongoService.disconnect();
     console.log('✅ Agent stopped\n');

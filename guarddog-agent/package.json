@@ -13,7 +13,8 @@
     "build": "tsc",
     "start:prod": "node dist/index.js",
     "monitor": "tsx src/monitoring/wallet-monitor.ts",
-    "test": "tsx src/test-agent.ts"
+    "test": "tsx --test src/config/*.test.ts src/monitoring/*.test.ts",
+    "test:e2e": "tsx src/test-threat-alert.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

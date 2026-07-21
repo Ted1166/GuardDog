@@ -262,7 +262,7 @@ export function useGuardDogAgent(): UseGuardDogAgentReturn {
                   ? {
                       ...m,
                       content:
-                        "⚠️ Connection issue. Check that your Supabase proxy is running and VITE_ANTHROPIC_PROXY_URL is set.",
+                        "I'm having trouble reaching GuardDog AI right now 🐕‍🦺 Please try again in a moment — or head to the dashboard to check your protection status directly.",
                       status: "error",
                     }
                   : m

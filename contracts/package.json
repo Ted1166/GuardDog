@@ -9,6 +9,8 @@
     "deploy:testnet": "hardhat run scripts/deploy.js --network bscTestnet",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network bscMainnet",
     "deploy:opbnb": "hardhat run scripts/deploy.js --network opBNBTestnet",
+    "deploy:botchain-testnet": "hardhat run scripts/deploy.js --network botchainTestnet",
+    "deploy:botchain-mainnet": "hardhat run scripts/deploy.js --network botchainMainnet",
     "verify": "hardhat verify --network bscTestnet",
     "node": "hardhat node",
     "clean": "hardhat clean"

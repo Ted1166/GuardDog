@@ -1,4 +1,6 @@
 import axios from 'axios';
+import type { NetworkKey } from '../config/contracts.js';
+import { getExplorerUrl } from '../config/network.js';
 
 export interface AlertMessage {
   type: 'threat_detected' | 'protection_executed' | 'scan_complete' | 'system_status';
@@ -55,6 +57,9 @@ export class OpenClawMessaging {
 
   private formatAlertMessage(alert: AlertMessage): string {
     const time = new Date(alert.timestamp).toUTCString();
+    const network = (process.env.NETWORK as NetworkKey) || 'bscTestnet';
+    const explorer = getExplorerUrl(network);
+    const explorerName = network.startsWith('botchain') ? 'BOTchain Explorer' : 'BSCScan';
 
     switch (alert.type) {
 
@@ -68,7 +73,7 @@ export class OpenClawMessaging {
         }
         if (alert.tokenAddress) {
           msg += `🪙 *Token:* \`${alert.tokenAddress.slice(0,10)}...${alert.tokenAddress.slice(-6)}\`\n`;
-          msg += `🔍 [View on BSCScan](https://testnet.bscscan.com/address/${alert.tokenAddress})\n`;
+          msg += `🔍 [View on ${explorerName}](${explorer}/address/${alert.tokenAddress})\n`;
         }
         msg += `\n📋 *Details:* ${alert.message}\n`;
         msg += `\n⚡ GuardDog is executing autonomous protection...`;
@@ -85,7 +90,7 @@ export class OpenClawMessaging {
         msg += `📋 *Details:* ${alert.message}\n`;
         if (alert.txHash) {
           msg += `\n🔗 *Transaction:*\n\`${alert.txHash}\`\n`;
-          msg += `[View on BSCScan](https://testnet.bscscan.com/tx/${alert.txHash})\n`;
+          msg += `[View on ${explorerName}](${explorer}/tx/${alert.txHash})\n`;
         }
         msg += `\n💡 Tokens are safe in GuardianVault. Withdraw anytime at guard-dog.vercel.app`;
         msg += `\n\n🕐 ${time}`;

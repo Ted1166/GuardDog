@@ -33,13 +33,6 @@ export default {
     },
 
     // BNB Chain
-    botchainTestnet: {
-      url: "https://rpc.bohr.life",
-      chainId: 968,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 50000000000,
-      timeout: 120000,
-    },
     bscMainnet: {
       url: "https://bsc-dataseed.binance.org",
       chainId: 56,

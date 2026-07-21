@@ -1,4 +1,6 @@
 import axios from 'axios';
+import type { NetworkKey } from '../config/contracts.js';
+import { getExplorerUrl } from '../config/network.js';
 
 export interface MoltbookPost {
   content: string;
@@ -196,7 +198,8 @@ export class MoltbookService {
     if (!body) body = post.content;
 
     if (post.metadata?.txHash) {
-      body += `\n\nOnchain proof: https://testnet.bscscan.com/tx/${post.metadata.txHash}`;
+      const network = (process.env.NETWORK as NetworkKey) || 'bscTestnet';
+      body += `\n\nOnchain proof: ${getExplorerUrl(network)}/tx/${post.metadata.txHash}`;
     }
 
     return { title: `🐕 GuardDog: ${title}`, body };

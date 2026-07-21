@@ -11,18 +11,30 @@ services:
 
     envVars:
       # ── Network ───────────────────────────────────────────────────
+      # BOTchain Mainnet is the primary network. To run against testnet
+      # instead, flip NETWORK to bscTestnet and see the commented block below.
       - key: NODE_ENV
         value: production
-      - key: BSC_RPC_URL
-        value: https://data-seed-prebsc-1-s1.binance.org:8545
       - key: NETWORK
-        value: bscTestnet
+        value: botchainMainnet
+      - key: BOTCHAIN_MAINNET_RPC_URL
+        value: https://rpc.botchain.ai
+      - key: BOTCHAIN_MAINNET_WSS_URL
+        value: wss://ws-rpc.botchain.ai
+      # - key: NETWORK
+      #   value: bscTestnet
+      # - key: BSC_RPC_URL
+      #   value: https://data-seed-prebsc-1-s1.binance.org:8545
 
       # ── Contracts ─────────────────────────────────────────────────
-      - key: GUARDIAN_VAULT_ADDRESS
-        value: 0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9
-      - key: THREAT_REGISTRY_ADDRESS
-        value: 0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9
+      - key: BOTCHAIN_MAINNET_GUARDIAN_VAULT
+        value: 0xEF650672437A97A7b987984239064D502F56272d
+      - key: BOTCHAIN_MAINNET_THREAT_REGISTRY
+        value: 0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7
+      # - key: GUARDIAN_VAULT_ADDRESS
+      #   value: 0xe6FB873f5a9fa2bF8E23B503e7db30A9fA2217F9
+      # - key: THREAT_REGISTRY_ADDRESS
+      #   value: 0xFeCDB94b3D093591d9eDE37fBd36Aa2F34fC66C9
 
       # ── Agent config ──────────────────────────────────────────────
       - key: MONITOR_INTERVAL_MINUTES
@@ -33,6 +45,8 @@ services:
         value: "2000000"
 
       # ── Secrets (set manually in Render dashboard) ─────────────────
+      - key: BOTCHAIN_MAINNET_PRIVATE_KEY
+        sync: false
       - key: GUARDIAN_PRIVATE_KEY
         sync: false
       - key: MONITORED_WALLETS

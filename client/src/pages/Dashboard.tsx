@@ -7,7 +7,6 @@ import WalletStats from '../components/dashboard/WalletStats';
 import WalletRiskScore from '../components/dashboard/WalletRiskScore';
 import ThreatAlerts from '../components/dashboard/ThreatAlerts';
 import TokenScanner from '../components/features/TokenScanner';
-import SurgeWatch from '../components/features/SurgeWatch';
 import ConnectWallet from '../components/wallet/ConnectWallet';
 
 function BountyMini() {
@@ -108,12 +107,9 @@ export default function Dashboard() {
 
         <ThreatAlerts threats={recentThreats} />
 
-        {/* Surge Watch */}
-        <SurgeWatch />
-
         <TokenScanner />
 
-        {/* Quick Actions + Bounty + Surge chip */}
+        {/* Quick Actions + Bounty */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
@@ -141,14 +137,6 @@ export default function Dashboard() {
 
           <div className="lg:col-span-1 flex flex-col gap-4">
             <BountyMini />
-            <a href="https://surge.xyz" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/20 hover:border-purple-500/40 rounded-xl p-4 transition-all">
-              <span className="text-2xl">⚡</span>
-              <div>
-                <p className="text-white font-semibold text-sm">Powered by Surge</p>
-                <p className="text-xs text-gray-400">Tokenizing startups · surge.xyz</p>
-              </div>
-            </a>
           </div>
         </div>
 

@@ -115,8 +115,8 @@ export const NETWORKS = {
 } as const;
 
 export type NetworkKey = keyof typeof NETWORKS;
-export const DEFAULT_NETWORK: NetworkKey = 'bscTestnet';
-export const SUPPORTED_NETWORKS: NetworkKey[] = ['bscTestnet', 'opBNBTestnet', 'baseSepolia', 'sepolia', 'botchainTestnet'];
+export const DEFAULT_NETWORK: NetworkKey = 'botchainMainnet';
+export const SUPPORTED_NETWORKS: NetworkKey[] = ['botchainMainnet', 'botchainTestnet'];
 
 // Chain ID → network key map (for auto-detection from MetaMask)
 export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {

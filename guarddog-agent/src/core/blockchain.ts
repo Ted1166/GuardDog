@@ -52,6 +52,11 @@ export class BlockchainService {
     return this.guardianWallet.address;
   }
 
+  async getChainId(): Promise<bigint> {
+    const network = await this.provider.getNetwork();
+    return network.chainId;
+  }
+
   async verifyGuardianRole(): Promise<boolean> {
     try {
       const contractGuardian = await this.vaultContract.guardian();

@@ -258,24 +258,6 @@ guarddog/
     └── .env.example
 ```
 
-## 🎯 SURGE × OpenClaw Hackathon
-
-**Track:** Agent Execution & Real World Actions
-
-**Why GuardDog Wins:**
-- ✅ **Real Autonomy** - Agent monitors 24/7 and executes onchain without human approval
-- ✅ **Practical Value** - Solves actual BNB Chain security problem (scams cost millions)
-- ✅ **AI + Blockchain Fusion** - Threat detection → autonomous smart contract execution
-- ✅ **OpenClaw Native** - Built specifically for OpenClaw from ground up
-- ✅ **Complete Demo** - Full working prototype with onchain proof
-
-**Prize Eligibility:**
-- ✅ Project runs via OpenClaw
-- ✅ Demonstrates meaningful agent autonomy
-- ✅ Posts to Moltbook lablab submolt
-- ✅ Public GitHub repo with clear documentation
-- ✅ Video submission on X with tags
-
 ## 🛣️ Roadmap
 
 **✅ Phase 1 (Hackathon - Complete)**
@@ -328,15 +310,12 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 🏆 Acknowledgments
 
-Built for **SURGE × OpenClaw Hackathon** on lablab.ai
-
 - OpenClaw team for the amazing agent platform
-- Surge for DeFi infrastructure
 - BNB Chain for the testnet environment
 - Community for threat intelligence
 
 ---
 
-**Built with 🤖 OpenClaw + ⛓️ Solidity + ⚛️ React for SURGE × OpenClaw Hackathon**
+**Built with 🤖 OpenClaw + ⛓️ Solidity + ⚛️ React**
 
 *Autonomous wallet security that actually protects, not just alerts.*
