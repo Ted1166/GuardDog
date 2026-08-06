@@ -16,7 +16,7 @@ async function main() {
   console.log("Transaction hash:", tx.hash);
   
   await tx.wait();
-  console.log("✅ Protection enabled!");
+  console.log("Protection enabled!");
 }
 
 main().catch((error) => {

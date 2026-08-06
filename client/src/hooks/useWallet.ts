@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import {
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+  useDisconnect as useAppKitDisconnect,
+} from '@reown/appkit/react';
+import {
   getNetworkConfig,
   getNetworkFromChainId,
   DEFAULT_NETWORK,
@@ -8,42 +14,65 @@ import {
   type NetworkKey,
 } from '../config/contracts';
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
+interface InjectedEthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<any>;
+  on: (event: string, handler: (...args: any[]) => void) => void;
+  removeListener: (event: string, handler: (...args: any[]) => void) => void;
+}
+
+function getInjectedProvider(): InjectedEthereumProvider | undefined {
+  return (window as unknown as { ethereum?: InjectedEthereumProvider }).ethereum;
 }
 
 const CONNECTED_KEY = 'guarddog_wallet_connected';
 
 export function useWallet() {
-  const [address, setAddress]       = useState<string>('');
+  const { open: openWalletConnectModal } = useAppKit();
+  const { address: wcAddress, isConnected: wcIsConnected } = useAppKitAccount();
+  const { walletProvider: wcProvider } = useAppKitProvider<ethers.Eip1193Provider>('eip155');
+  const { disconnect: disconnectWalletConnect } = useAppKitDisconnect();
+  const [connectionSource, setConnectionSource] = useState<'injected' | 'walletconnect' | null>(null);
+
+  const [address, setAddress] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
-  const [provider, setProvider]     = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner]         = useState<ethers.Signer | null>(null);
-  const [chainId, setChainId]       = useState<string>('');
-  const [balance, setBalance]       = useState<bigint>(0n);
-  const [loading, setLoading]       = useState(true);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [chainId, setChainId] = useState<string>('');
+  const [balance, setBalance] = useState<bigint>(0n);
+  const [loading, setLoading] = useState(true);
   const [showNetworkModal, setShowNetworkModal] = useState(false);
+
+  const disconnectCleanup = useCallback(() => {
+    localStorage.removeItem(CONNECTED_KEY);
+    setAddress('');
+    setIsConnected(false);
+    setSigner(null);
+    setProvider(null);
+    setChainId('');
+    setBalance(0n);
+    setShowNetworkModal(false);
+    setConnectionSource(null);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
       const wasConnected = localStorage.getItem(CONNECTED_KEY) === 'true';
+      const ethereum = getInjectedProvider();
 
-      if (!wasConnected || typeof window.ethereum === 'undefined') {
+      if (!wasConnected || !ethereum) {
         setLoading(false);
         return;
       }
 
       try {
-        const web3Provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const web3Provider = new ethers.BrowserProvider(ethereum);
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
 
         if (accounts.length > 0) {
-          const s       = await web3Provider.getSigner();
-          const addr    = await s.getAddress();
+          const s = await web3Provider.getSigner();
+          const addr = await s.getAddress();
           const network = await web3Provider.getNetwork();
-          const bal     = await web3Provider.getBalance(addr);
+          const bal = await web3Provider.getBalance(addr);
 
           setProvider(web3Provider);
           setSigner(s);
@@ -51,6 +80,7 @@ export function useWallet() {
           setChainId(network.chainId.toString());
           setBalance(bal);
           setIsConnected(true);
+          setConnectionSource('injected');
         } else {
           localStorage.removeItem(CONNECTED_KEY);
         }
@@ -65,8 +95,57 @@ export function useWallet() {
     init();
   }, []);
 
+  // WalletConnect path: fires when AppKit reports a connected session, either
+  // right after the user approves in their wallet app, or automatically on
+  // page load if AppKit restored a previous session. Skipped entirely if an
+  // injected-wallet session is already driving state.
   useEffect(() => {
-    if (!window.ethereum) return;
+    if (connectionSource === 'injected') return;
+
+    if (!wcIsConnected || !wcProvider || !wcAddress) {
+      if (connectionSource === 'walletconnect') {
+        // AppKit reports disconnected — clear our mirrored state too.
+        disconnectCleanup();
+      }
+      return;
+    }
+
+    const syncFromWalletConnect = async () => {
+      try {
+        setLoading(true);
+        const web3Provider = new ethers.BrowserProvider(wcProvider);
+        const s = await web3Provider.getSigner();
+        const addr = await s.getAddress();
+        const network = await web3Provider.getNetwork();
+        const bal = await web3Provider.getBalance(addr);
+
+        setProvider(web3Provider);
+        setSigner(s);
+        setAddress(addr);
+        setChainId(network.chainId.toString());
+        setBalance(bal);
+        setIsConnected(true);
+        setConnectionSource('walletconnect');
+        localStorage.setItem(CONNECTED_KEY, 'true');
+
+        const detectedNetwork = getNetworkFromChainId(network.chainId.toString());
+        if (!SUPPORTED_NETWORKS.includes(detectedNetwork)) {
+          setShowNetworkModal(true);
+        }
+      } catch (error) {
+        console.error('Failed to sync WalletConnect session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    syncFromWalletConnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wcIsConnected, wcProvider, wcAddress, connectionSource]);
+
+  useEffect(() => {
+    const ethereum = getInjectedProvider();
+    if (!ethereum) return;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
@@ -80,13 +159,14 @@ export function useWallet() {
 
     const handleChainChanged = () => window.location.reload();
 
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    ethereum.on('accountsChanged', handleAccountsChanged);
+    ethereum.on('chainChanged', handleChainChanged);
 
     return () => {
-      window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum?.removeListener('chainChanged', handleChainChanged);
+      ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      ethereum.removeListener('chainChanged', handleChainChanged);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -106,33 +186,31 @@ export function useWallet() {
     return () => clearInterval(interval);
   }, [provider, address]);
 
-  const disconnectCleanup = useCallback(() => {
-    localStorage.removeItem(CONNECTED_KEY);
-    setAddress('');
-    setIsConnected(false);
-    setSigner(null);
-    setProvider(null);
-    setChainId('');
-    setBalance(0n);
-    setShowNetworkModal(false);
-  }, []);
-
   const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      alert('Please install MetaMask or another Web3 wallet');
+    const ethereum = getInjectedProvider();
+
+    if (!ethereum) {
+      // No injected wallet (typical for mobile Safari/Chrome) — open the
+      // WalletConnect modal instead. The useEffect above picks up the
+      // resulting session and populates wallet state once approved.
+      try {
+        await openWalletConnectModal();
+      } catch (error) {
+        console.error('Failed to open WalletConnect modal:', error);
+      }
       return;
     }
 
     try {
       setLoading(true);
 
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      await ethereum.request({ method: 'eth_requestAccounts' });
 
-      const web3Provider = new ethers.BrowserProvider(window.ethereum);
-      const s       = await web3Provider.getSigner();
-      const addr    = await s.getAddress();
+      const web3Provider = new ethers.BrowserProvider(ethereum);
+      const s = await web3Provider.getSigner();
+      const addr = await s.getAddress();
       const network = await web3Provider.getNetwork();
-      const bal     = await web3Provider.getBalance(addr);
+      const bal = await web3Provider.getBalance(addr);
 
       setProvider(web3Provider);
       setSigner(s);
@@ -140,6 +218,7 @@ export function useWallet() {
       setChainId(network.chainId.toString());
       setBalance(bal);
       setIsConnected(true);
+      setConnectionSource('injected');
 
       localStorage.setItem(CONNECTED_KEY, 'true');
 
@@ -155,20 +234,25 @@ export function useWallet() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openWalletConnectModal]);
 
   const disconnect = useCallback(() => {
+    if (connectionSource === 'walletconnect') {
+      disconnectWalletConnect().catch((error) =>
+        console.error('Failed to disconnect WalletConnect session:', error)
+      );
+    }
     disconnectCleanup();
-
-  }, [disconnectCleanup]);
+  }, [connectionSource, disconnectWalletConnect, disconnectCleanup]);
 
   const switchNetwork = useCallback(async (targetKey: NetworkKey = DEFAULT_NETWORK) => {
-    if (!window.ethereum) return;
+    const ethereum = getInjectedProvider();
+    if (!ethereum) return;
 
     const targetNetwork = getNetworkConfig(targetKey);
 
     try {
-      await window.ethereum.request({
+      await ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: targetNetwork.chainId }],
       });
@@ -176,13 +260,13 @@ export function useWallet() {
     } catch (error: any) {
       if (error.code === 4902) {
         try {
-          await window.ethereum.request({
+          await ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
-              chainId:         targetNetwork.chainId,
-              chainName:       targetNetwork.chainName,
-              nativeCurrency:  targetNetwork.nativeCurrency,
-              rpcUrls:         targetNetwork.rpcUrls,
+              chainId: targetNetwork.chainId,
+              chainName: targetNetwork.chainName,
+              nativeCurrency: targetNetwork.nativeCurrency,
+              rpcUrls: targetNetwork.rpcUrls,
               blockExplorerUrls: targetNetwork.blockExplorerUrls,
             }],
           });

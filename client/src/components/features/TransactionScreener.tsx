@@ -10,8 +10,8 @@ function riskBg(level: TransactionRisk['level']) {
   return level === 'danger'
     ? 'from-red-500/10 border-red-500/30'
     : level === 'caution'
-    ? 'from-yellow-500/10 border-yellow-500/30'
-    : 'from-green-500/10 border-green-500/30';
+      ? 'from-yellow-500/10 border-yellow-500/30'
+      : 'from-green-500/10 border-green-500/30';
 }
 function riskEmoji(level: TransactionRisk['level']) {
   return level === 'danger' ? '🔴' : level === 'caution' ? '🟡' : '🟢';
@@ -49,7 +49,7 @@ function ScreenerModal({ tx, risk, loading, error, onProceed, onCancel }: Screen
     '0x38ed1739': 'swapExactTokensForTokens()',
     '0x7ff36ab5': 'swapExactETHForTokens()',
     '0x18cbafe5': 'swapExactTokensForETH()',
-    '0x':         'Native Transfer',
+    '0x': 'Native Transfer',
   };
   const methodName = KNOWN_METHODS[methodSig] || `${methodSig}`;
 
@@ -150,13 +150,12 @@ function ScreenerModal({ tx, risk, loading, error, onProceed, onCancel }: Screen
           <button
             onClick={onProceed}
             disabled={loading}
-            className={`flex-1 py-3 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-40 ${
-              risk?.level === 'danger'
-                ? 'bg-red-600 hover:bg-red-500 border border-red-500'
-                : risk?.level === 'caution'
+            className={`flex-1 py-3 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-40 ${risk?.level === 'danger'
+              ? 'bg-red-600 hover:bg-red-500 border border-red-500'
+              : risk?.level === 'caution'
                 ? 'bg-yellow-600 hover:bg-yellow-500 border border-yellow-500'
                 : 'bg-green-600 hover:bg-green-500 border border-green-500'
-            }`}
+              }`}
           >
             {risk?.level === 'danger' ? '⚠️ Proceed Anyway' : '✓ Proceed'}
           </button>
@@ -209,12 +208,13 @@ export function useTransactionInterceptor() {
   }, [reset]);
 
   useEffect(() => {
-    if (!window.ethereum) return;
+    const ethereum = (window as unknown as { ethereum?: any }).ethereum;
+    if (!ethereum) return;
 
     if (originalRequestRef.current) return;
-    originalRequestRef.current = window.ethereum.request.bind(window.ethereum);
+    originalRequestRef.current = ethereum.request.bind(ethereum);
 
-    window.ethereum.request = async (args: { method: string; params?: any[] }) => {
+    ethereum.request = async (args: { method: string; params?: any[] }) => {
       if (
         args.method === 'eth_sendTransaction' &&
         Array.isArray(args.params) &&
@@ -243,8 +243,8 @@ export function useTransactionInterceptor() {
     };
 
     return () => {
-      if (originalRequestRef.current && window.ethereum) {
-        window.ethereum.request = originalRequestRef.current as any;
+      if (originalRequestRef.current && ethereum) {
+        ethereum.request = originalRequestRef.current;
         originalRequestRef.current = null;
       }
     };

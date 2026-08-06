@@ -64,7 +64,7 @@ export default function Dashboard() {
               GuardDog
             </h1>
             <p className="text-gray-400 text-lg max-w-xl mx-auto leading-relaxed">
-              AI-powered autonomous wallet security for BNB Chain.<br />
+              AI-powered autonomous wallet security across Chain.<br />
               Protect your assets 24/7.
             </p>
           </div>

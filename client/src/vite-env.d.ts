@@ -11,6 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_NOTIFICATIONS?: string;
   readonly VITE_ENABLE_ANALYTICS?: string;
   readonly VITE_DEBUG_MODE?: string;
+  readonly VITE_WALLETCONNECT_PROJECT_ID: string;
 }
 
 interface ImportMeta {
