@@ -1,4 +1,6 @@
 import { BlockchainService } from '../core/blockchain.js';
+import { KeeperHubService } from '../core/keeperhub.js';
+import { GUARDIAN_VAULT_ABI } from '../config/contracts.js';
 import { ethers } from 'ethers';
 
 export interface MonitoredWallet {
@@ -21,6 +23,7 @@ export interface ThreatDetection {
 
 export class WalletMonitor {
   private blockchain: BlockchainService;
+  private keeperHub?: KeeperHubService;
   private monitoredWallets: Map<string, MonitoredWallet> = new Map();
   private threatThreshold: number;
   private maxProtectionAmount: bigint;
@@ -28,11 +31,18 @@ export class WalletMonitor {
   constructor(
     blockchain: BlockchainService,
     threatThreshold: number = 75,
-    maxProtectionAmount: string = '1000'
+    maxProtectionAmount: string = '1000',
+    // Optional: when provided, protection execution routes through KeeperHub
+    // (simulate → execute → poll, with idempotency + audit trail) instead of
+    // the direct ethers.js call. Omit this to keep today's exact behavior -
+    // this is opt-in per WalletMonitor instance, so the live BOTchain
+    // mainnet flow is unaffected unless explicitly wired up.
+    keeperHub?: KeeperHubService
   ) {
     this.blockchain = blockchain;
     this.threatThreshold = threatThreshold;
     this.maxProtectionAmount = ethers.parseEther(maxProtectionAmount);
+    this.keeperHub = keeperHub;
   }
 
   addWallet(address: string, tokens: string[] = []): void {
@@ -55,17 +65,17 @@ export class WalletMonitor {
 
   async scanWallet(walletAddress: string): Promise<ThreatDetection[]> {
     console.log(`\n🔍 Scanning wallet: ${walletAddress}`);
-    
+
     const isProtected = await this.blockchain.isWalletProtected(walletAddress);
-    
+
     if (!isProtected) {
-      console.log(`⚠️  Wallet ${walletAddress} is not protected. Skipping scan.`);
+      console.log(`⚠️ Wallet ${walletAddress} is not protected. Skipping scan.`);
       return [];
     }
 
     const wallet = this.monitoredWallets.get(walletAddress.toLowerCase());
     if (!wallet) {
-      console.log(`⚠️  Wallet ${walletAddress} not in monitoring list`);
+      console.log(`⚠️ Wallet ${walletAddress} not in monitoring list`);
       return [];
     }
 
@@ -78,12 +88,12 @@ export class WalletMonitor {
 
         if (threatScore >= this.threatThreshold || isVerified) {
           const balance = await this.blockchain.getTokenBalance(walletAddress, tokenAddress);
-          
+
           if (balance > 0n) {
             const reports = await this.blockchain.getThreatReports(tokenAddress);
             const latestReport = reports.length > 0 ? reports[reports.length - 1] : null;
-            
-            const reason = latestReport 
+
+            const reason = latestReport
               ? `${latestReport.threatType}: ${latestReport.evidence.substring(0, 100)}`
               : `Threat score: ${threatScore}`;
 
@@ -98,15 +108,15 @@ export class WalletMonitor {
               balance,
               threatSource: 'community',
               oklinkLevel: null,
-  oklinkCategories: [],
+              oklinkCategories: [],
             });
 
             console.log(`🚨 THREAT DETECTED!`);
-            console.log(`   Token: ${tokenAddress}`);
-            console.log(`   Threat Level: ${threatScore}`);
-            console.log(`   Verified: ${isVerified}`);
-            console.log(`   Balance: ${ethers.formatEther(balance)}`);
-            console.log(`   Action: ${shouldProtect ? 'PROTECT' : 'SKIP (exceeds max)'}`);
+            console.log(` Token: ${tokenAddress}`);
+            console.log(` Threat Level: ${threatScore}`);
+            console.log(` Verified: ${isVerified}`);
+            console.log(` Balance: ${ethers.formatEther(balance)}`);
+            console.log(` Action: ${shouldProtect ? 'PROTECT' : 'SKIP (exceeds max)'}`);
           }
         }
       } catch (error) {
@@ -125,7 +135,7 @@ export class WalletMonitor {
 
   async scanAllWallets(): Promise<Map<string, ThreatDetection[]>> {
     console.log(`\n🔍 Starting scan of ${this.monitoredWallets.size} wallets...`);
-    
+
     const results = new Map<string, ThreatDetection[]>();
 
     for (const [address] of this.monitoredWallets) {
@@ -145,11 +155,41 @@ export class WalletMonitor {
 
   async executeProtection(detection: ThreatDetection): Promise<string | null> {
     if (!detection.shouldProtect) {
-      console.log(`⏭️  Skipping protection (balance exceeds max protection amount)`);
+      console.log(`⏭️ Skipping protection (balance exceeds max protection amount)`);
       return null;
     }
 
     try {
+      if (this.keeperHub) {
+        const chainId = Number(await this.blockchain.getChainId());
+        const idempotencyKey = `protect:${detection.walletAddress}:${detection.tokenAddress}:${Date.now()}`;
+
+        console.log(`🛡️ [KeeperHub] Protecting via ${detection.walletAddress} / ${detection.tokenAddress}`);
+
+        const result = await this.keeperHub.executeAndWait({
+          contractAddress: this.blockchain.getVaultAddress(),
+          chainId,
+          functionName: 'protectTokens',
+          functionArgs: [
+            detection.walletAddress,
+            detection.tokenAddress,
+            detection.balance.toString(),
+            detection.threatLevel,
+            detection.reason,
+          ],
+          abi: GUARDIAN_VAULT_ABI,
+          idempotencyKey,
+        });
+
+        if (result.status === 'failed') {
+          console.error(`❌ [KeeperHub] Execution failed:`, result.error);
+          return null;
+        }
+
+        console.log(`✅ [KeeperHub] Protection executed: ${result.transactionLink || result.transactionHash}`);
+        return result.transactionHash || null;
+      }
+
       const txHash = await this.blockchain.protectTokens(
         detection.walletAddress,
         detection.tokenAddress,
@@ -167,7 +207,7 @@ export class WalletMonitor {
 
   async batchExecuteProtection(walletAddress: string, detections: ThreatDetection[]): Promise<string | null> {
     const protectableDetections = detections.filter(d => d.shouldProtect);
-    
+
     if (protectableDetections.length === 0) {
       console.log(`⏭️  No tokens to protect for wallet ${walletAddress}`);
       return null;
@@ -180,6 +220,36 @@ export class WalletMonitor {
         threatLevel: d.threatLevel,
         reason: d.reason,
       }));
+
+      if (this.keeperHub) {
+        const chainId = Number(await this.blockchain.getChainId());
+        const idempotencyKey = `batch-protect:${walletAddress}:${Date.now()}`;
+
+        console.log(`🛡️  [KeeperHub] Batch protecting ${tokens.length} tokens for ${walletAddress}`);
+
+        const result = await this.keeperHub.executeAndWait({
+          contractAddress: this.blockchain.getVaultAddress(),
+          chainId,
+          functionName: 'batchProtectTokens',
+          functionArgs: [
+            walletAddress,
+            tokens.map(t => t.address),
+            tokens.map(t => t.amount.toString()),
+            tokens.map(t => t.threatLevel),
+            tokens.map(t => t.reason),
+          ],
+          abi: GUARDIAN_VAULT_ABI,
+          idempotencyKey,
+        });
+
+        if (result.status === 'failed') {
+          console.error(`❌ [KeeperHub] Batch execution failed:`, result.error);
+          return null;
+        }
+
+        console.log(`✅ [KeeperHub] Batch protection executed: ${result.transactionLink || result.transactionHash}`);
+        return result.transactionHash || null;
+      }
 
       const txHash = await this.blockchain.batchProtectTokens(walletAddress, tokens);
       return txHash;

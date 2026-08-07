@@ -6,7 +6,7 @@ async function main() {
 
   const token = await hre.ethers.getContractAt(
     "TestToken",
-    "0xA6e12043F663fc803ae467e9F77A46E4754e3dC8",
+    "0x23A524E860294Cf35050d8dA281e288649322a41",
     wallet
   );
 

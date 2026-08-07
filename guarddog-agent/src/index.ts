@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { BlockchainService } from './core/blockchain.js';
+import { KeeperHubService } from './core/keeperhub.js';
 import { WalletMonitor } from './monitoring/wallet-monitor.js';
 import { OpenClawMessaging } from './messaging/openclaw.js';
 import { MoltbookService } from './messaging/moltbook.js';
@@ -31,10 +32,26 @@ export class GuardDogAgent {
       getGuardianPrivateKey(this.network),
       this.network
     );
+
+    // KeeperHub is required on bscTestnet as of the guardian handoff done for
+    // the KeeperHub hackathon, the old GUARDIAN_PRIVATE_KEY is no longer the
+    // on-chain guardian for 0xe6FB...217F9, so direct calls would revert.
+    // Other networks (e.g. BOTchain mainnet) are unaffected and keep working
+    // via the direct-call fallback if KEEPERHUB_API_KEY is unset.
+    const keeperHubApiKey = process.env.KEEPERHUB_API_KEY;
+    const keeperHub = keeperHubApiKey ? new KeeperHubService(keeperHubApiKey) : undefined;
+    if (this.network === 'bscTestnet' && !keeperHub) {
+      console.warn(
+        '⚠️  Running on bscTestnet without KEEPERHUB_API_KEY set — protection ' +
+        'execution will fail (guardian role now belongs to the KeeperHub wallet).'
+      );
+    }
+
     this.monitor = new WalletMonitor(
       this.blockchain,
       parseInt(process.env.THREAT_THRESHOLD || '75'),
-      process.env.MAX_PROTECTION_AMOUNT || '1000'
+      process.env.MAX_PROTECTION_AMOUNT || '1000',
+      keeperHub
     );
     this.messaging = new OpenClawMessaging(
       process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789',
@@ -67,7 +84,7 @@ export class GuardDogAgent {
   async initialize(): Promise<void> {
     console.log('\n🐕 GuardDog Agent Initializing...\n');
 
-    // ── MongoDB ──────────────────────────────────────────────────────
+    // MongoDB 
     await mongoService.connect();
 
     const expectedChainId = getExpectedChainId(this.network);
@@ -214,10 +231,10 @@ export class GuardDogAgent {
 
       console.log(`\n${'='.repeat(60)}`);
       console.log(`✅ Scan Cycle Complete`);
-      console.log(`   Wallets Scanned:      ${stats.totalWallets}`);
-      console.log(`   Threats Found:        ${totalThreats}`);
-      console.log(`   Protections Executed: ${totalProtections}`);
-      console.log(`   MongoDB:              ${mongoService.isConnected() ? '✅ persisted' : '⚠️  offline'}`);
+      console.log(` Wallets Scanned: ${stats.totalWallets}`);
+      console.log(` Threats Found: ${totalThreats}`);
+      console.log(` Protections Executed: ${totalProtections}`);
+      console.log(` MongoDB: ${mongoService.isConnected() ? '✅ persisted' : '⚠️  offline'}`);
       console.log(`${'='.repeat(60)}\n`);
 
     } catch (error) {
@@ -286,7 +303,7 @@ export class GuardDogAgent {
   }
 }
 
-// ── Main entry point ──────────────────────────────────────────────────
+// Main entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
   const agent = new GuardDogAgent();
   createServer(agent);

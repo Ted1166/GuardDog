@@ -39,6 +39,12 @@ export default {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 3000000000,
     },
+    bscTestnet: {
+      url: "https://bsc-testnet-rpc.publicnode.com",
+      chainId: 97,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 10000000000,
+    },
 
     // opBNB (BNB Layer 2)
     opBNBTestnet: {

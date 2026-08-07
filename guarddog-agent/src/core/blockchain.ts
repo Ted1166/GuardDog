@@ -218,4 +218,9 @@ export class BlockchainService {
       return 0n;
     }
   }
+
+  /** Vault contract address — needed to build KeeperHub execute-contract-call requests. */
+  getVaultAddress(): string {
+    return this.vaultContract.target as string;
+  }
 }

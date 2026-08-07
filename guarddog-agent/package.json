@@ -14,7 +14,13 @@
     "start:prod": "node dist/index.js",
     "monitor": "tsx src/monitoring/wallet-monitor.ts",
     "test": "tsx --test src/config/*.test.ts src/monitoring/*.test.ts",
-    "test:e2e": "tsx src/test-threat-alert.ts"
+    "test:e2e": "tsx src/test-threat-alert.ts",
+    "check:keeperhub-chains": "tsx src/test-keeperhub-chains.ts",
+    "check:keeperhub-wallet": "tsx src/test-keeperhub-wallet.ts",
+    "check:guardian-vault": "tsx src/check-guardian-vault.ts",
+    "set:keeperhub-guardian": "tsx src/set-keeperhub-guardian.ts",
+    "demo:keeperhub-protection": "tsx src/trigger-keeperhub-demo.ts",
+    "diagnose:vault-abi": "tsx src/diagnose-vault-abi.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

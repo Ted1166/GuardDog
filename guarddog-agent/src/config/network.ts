@@ -9,7 +9,10 @@ export function getRpcUrl(network: NetworkKey): string {
     case 'bscMainnet':
       return process.env.BSC_MAINNET_RPC_URL || 'https://bsc-dataseed.binance.org';
     default: // bscTestnet
-      return process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545';
+      // data-seed-prebsc-1-s1.binance.org is flaky (silently returns empty
+      // "0x" results instead of erroring/timing out) - publicnode.com's
+      // endpoint has been reliable for this project's read/write calls.
+      return process.env.BSC_RPC_URL || 'https://bsc-testnet-rpc.publicnode.com';
   }
 }
 
@@ -24,7 +27,7 @@ export function getWssUrl(network: NetworkKey): string | undefined {
   }
 }
 
-// Mainnet intentionally does NOT fall back to GUARDIAN_PRIVATE_KEY — signing
+// Mainnet intentionally does NOT fall back to GUARDIAN_PRIVATE_KEY - signing
 // mainnet transactions with an unrelated testnet key would silently fail the
 // guardian check (or worse, silently succeed against the wrong wallet).
 export function getGuardianPrivateKey(network: NetworkKey): string {
