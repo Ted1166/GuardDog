@@ -8,6 +8,10 @@ export function getRpcUrl(network: NetworkKey): string {
       return process.env.BOTCHAIN_MAINNET_RPC_URL || 'https://rpc.botchain.ai';
     case 'bscMainnet':
       return process.env.BSC_MAINNET_RPC_URL || 'https://bsc-dataseed.binance.org';
+    case 'xLayerTestnet':
+      return process.env.XLAYER_TESTNET_RPC_URL || 'https://testrpc.xlayer.tech/terigon';
+    case 'xLayerMainnet':
+      return process.env.XLAYER_MAINNET_RPC_URL || 'https://rpc.xlayer.tech';
     default: // bscTestnet
       // data-seed-prebsc-1-s1.binance.org is flaky (silently returns empty
       // "0x" results instead of erroring/timing out) - publicnode.com's
@@ -34,6 +38,9 @@ export function getGuardianPrivateKey(network: NetworkKey): string {
   if (network === 'botchainMainnet') {
     return process.env.BOTCHAIN_MAINNET_PRIVATE_KEY || '';
   }
+  if (network === 'xLayerMainnet') {
+    return process.env.XLAYER_MAINNET_PRIVATE_KEY || '';
+  }
   return process.env.GUARDIAN_PRIVATE_KEY || '';
 }
 
@@ -45,6 +52,10 @@ export function getExpectedChainId(network: NetworkKey): bigint {
       return 677n;
     case 'bscMainnet':
       return 56n;
+    case 'xLayerTestnet':
+      return 1952n;
+    case 'xLayerMainnet':
+      return 196n;
     default: // bscTestnet
       return 97n;
   }
@@ -58,11 +69,17 @@ export function getExplorerUrl(network: NetworkKey): string {
       return 'https://scan.botchain.ai';
     case 'bscMainnet':
       return 'https://bscscan.com';
+    case 'xLayerTestnet':
+      return 'https://web3.okx.com/explorer/x-layer-testnet';
+    case 'xLayerMainnet':
+      return 'https://web3.okx.com/explorer/x-layer/evm';
     default: // bscTestnet
       return 'https://testnet.bscscan.com';
   }
 }
 
 export function getNativeSymbol(network: NetworkKey): string {
-  return network.startsWith('botchain') ? 'BOT' : 'BNB';
+  if (network.startsWith('botchain')) return 'BOT';
+  if (network.startsWith('xLayer')) return 'OKB';
+  return 'BNB';
 }

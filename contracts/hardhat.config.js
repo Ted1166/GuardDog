@@ -85,5 +85,19 @@ export default {
       chainId: 1,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+
+    // X Layer (OKX's zkEVM L2)
+    xLayerTestnet: {
+      url: "https://testrpc.xlayer.tech/terigon",
+      chainId: 1952,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000,
+    },
+    xLayerMainnet: {
+      url: "https://rpc.xlayer.tech",
+      chainId: 196,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000,
+    },
   },
 };

@@ -18,6 +18,8 @@ const EXPLORERS = {
   1: "https://etherscan.io",
   968: "https://testnet.botscans.net",
   677: "https://scan.botchain.ai",
+  1952: "https://web3.okx.com/explorer/x-layer-testnet",
+  196: "https://web3.okx.com/explorer/x-layer/evm",
 };
 
 async function main() {
@@ -41,13 +43,13 @@ async function main() {
   await threatRegistry.waitForDeployment();
   const threatRegistryAddress = await threatRegistry.getAddress();
   console.log("✅ ThreatRegistry:", threatRegistryAddress);
-  console.log(`   ${explorer}/address/${threatRegistryAddress}`);
+  console.log(` ${explorer}/address/${threatRegistryAddress}`);
 
   const deployTx1 = await threatRegistry.deploymentTransaction();
   const receipt1 = await deployTx1?.wait();
 
   // Deploy GuardianVault
-  console.log("\n🛡️  Deploying GuardianVault...");
+  console.log("\n🛡️ Deploying GuardianVault...");
   const GuardianVault = await hre.ethers.getContractFactory("GuardianVault");
   const guardianVault = await GuardianVault.deploy(deployer.address);
   await guardianVault.waitForDeployment();
@@ -63,12 +65,12 @@ async function main() {
   console.log("\n" + "=".repeat(60));
   console.log("🎉 DEPLOYMENT COMPLETE!");
   console.log("=".repeat(60));
-  console.log(`Network:   ${network.name} (Chain ID: ${chainId})`);
-  console.log(`Deployer:  ${deployer.address}`);
-  console.log(`Gas Used:  ${totalGas.toString()}`);
+  console.log(`Network: ${network.name} (Chain ID: ${chainId})`);
+  console.log(`Deployer: ${deployer.address}`);
+  console.log(`Gas Used: ${totalGas.toString()}`);
   console.log("\n📝 Add these to your contracts.ts:");
-  console.log(`ThreatRegistry:  "${threatRegistryAddress}"`);
-  console.log(`GuardianVault:   "${guardianVaultAddress}"`);
+  console.log(`ThreatRegistry: "${threatRegistryAddress}"`);
+  console.log(`GuardianVault: "${guardianVaultAddress}"`);
 
   // Save deployment info
   const deploymentInfo = {

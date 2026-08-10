@@ -32,7 +32,7 @@ export interface ContractAddresses {
   ThreatRegistry: string;
 }
 
-export type NetworkKey = 'bscTestnet' | 'bscMainnet' | 'botchainTestnet' | 'botchainMainnet';
+export type NetworkKey = 'bscTestnet' | 'bscMainnet' | 'botchainTestnet' | 'botchainMainnet' | 'xLayerTestnet' | 'xLayerMainnet';
 
 export function getContractAddresses(network: NetworkKey): ContractAddresses {
   switch (network) {
@@ -50,6 +50,16 @@ export function getContractAddresses(network: NetworkKey): ContractAddresses {
       return {
         GuardianVault: process.env.BSC_MAINNET_GUARDIAN_VAULT || '',
         ThreatRegistry: process.env.BSC_MAINNET_THREAT_REGISTRY || '',
+      };
+    case 'xLayerTestnet':
+      return {
+        GuardianVault: process.env.XLAYER_TESTNET_GUARDIAN_VAULT || '0xEF650672437A97A7b987984239064D502F56272d',
+        ThreatRegistry: process.env.XLAYER_TESTNET_THREAT_REGISTRY || '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
+      };
+    case 'xLayerMainnet':
+      return {
+        GuardianVault: process.env.XLAYER_MAINNET_GUARDIAN_VAULT || '',
+        ThreatRegistry: process.env.XLAYER_MAINNET_THREAT_REGISTRY || '',
       };
     default: // bscTestnet
       return {

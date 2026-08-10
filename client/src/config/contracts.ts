@@ -45,6 +45,16 @@ export const CONTRACT_ADDRESSES = {
     GuardianVault: '0xEF650672437A97A7b987984239064D502F56272d',
     ThreatRegistry: '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
   },
+  // X Layer Testnet
+  xLayerTestnet: {
+    GuardianVault: '0xEF650672437A97A7b987984239064D502F56272d',
+    ThreatRegistry: '0x2D101FaFb24C660Bfef07fd3106Caf1074C80bF7',
+  },
+  // X Layer Mainnet
+  xLayerMainnet: {
+    GuardianVault: '',
+    ThreatRegistry: '',
+  },
 } as const;
 
 // Network Configuration
@@ -112,6 +122,20 @@ export const NETWORKS = {
     rpcUrls: ['https://rpc.botchain.ai'],
     blockExplorerUrls: ['https://scan.botchain.ai'],
   },
+  xLayerTestnet: {
+    chainId: '0x7A0',       // 1952
+    chainName: 'X Layer Testnet',
+    nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+    rpcUrls: ['https://testrpc.xlayer.tech/terigon'],
+    blockExplorerUrls: ['https://web3.okx.com/explorer/x-layer-testnet'],
+  },
+  xLayerMainnet: {
+    chainId: '0xC4',        // 196
+    chainName: 'X Layer',
+    nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+    rpcUrls: ['https://rpc.xlayer.tech'],
+    blockExplorerUrls: ['https://web3.okx.com/explorer/x-layer/evm'],
+  },
 } as const;
 
 export type NetworkKey = keyof typeof NETWORKS;
@@ -127,6 +151,7 @@ export const SUPPORTED_NETWORKS: NetworkKey[] = [
   'opBNBTestnet',
   'baseSepolia',
   'sepolia',
+  'xLayerTestnet',
 ];
 
 // Chain ID → network key map (for auto-detection from MetaMask)
@@ -140,6 +165,8 @@ export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {
   '11155111': 'sepolia',
   '968': 'botchainTestnet',
   '677': 'botchainMainnet',
+  '1952': 'xLayerTestnet',
+  '196': 'xLayerMainnet',
 };
 
 // ABIs
@@ -216,6 +243,8 @@ export const BLOCK_EXPLORER = {
   sepolia: 'https://sepolia.etherscan.io',
   botchainTestnet: 'https://scan.bohr.life',
   botchainMainnet: 'https://scan.botchain.ai',
+  xLayerTestnet: 'https://web3.okx.com/explorer/x-layer-testnet',
+  xLayerMainnet: 'https://web3.okx.com/explorer/x-layer/evm',
 } as const;
 
 export function getExplorerUrl(

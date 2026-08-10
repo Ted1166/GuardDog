@@ -8,7 +8,7 @@ import {
   DEFAULT_NETWORK,
 } from '../config/contracts';
 
-// ── Gas limits per network (prevents RPC hang on slow testnets) ───────
+// Gas limits per network (prevents RPC hang on slow testnets)
 const GAS_LIMITS: Record<NetworkKey, bigint> = {
   bscTestnet: 300_000n,
   bscMainnet: 300_000n,
@@ -19,9 +19,11 @@ const GAS_LIMITS: Record<NetworkKey, bigint> = {
   sepolia: 300_000n,
   botchainTestnet: 500000n,
   botchainMainnet: 500000n,
+  xLayerTestnet: 500000n,
+  xLayerMainnet: 500000n,
 };
 
-// ── Read-only provider (bypasses wallet origin restrictions) ──────────
+// Read-only provider (bypasses wallet origin restrictions)
 export function getReadProvider(network: NetworkKey = DEFAULT_NETWORK): ethers.JsonRpcProvider {
   return new ethers.JsonRpcProvider(NETWORKS[network].rpcUrls[0]);
 }
@@ -66,7 +68,7 @@ export async function checkProtectionStatus(
   network: NetworkKey = DEFAULT_NETWORK
 ): Promise<boolean> {
   try {
-    // Always use direct RPC for reads — avoids wallet origin blocks
+    // Always use direct RPC for reads
     const readProvider = getReadProvider(network);
     const contract = getGuardianVaultContract(readProvider, network);
     return await contract.isWalletProtected(address);
@@ -190,7 +192,7 @@ export async function reportThreat(
 ) {
   const contract = getThreatRegistryContract(signer, network);
 
-  // ── uint8 cast — critical for ETH Sepolia / Base Sepolia storage ─────
+  // uint8 cast - critical for ETH Sepolia / Base Sepolia storage
   const level = Math.min(255, Math.max(0, Math.round(threatLevel)));
 
   const tx = await contract.reportThreat(
@@ -222,7 +224,7 @@ export async function getThreatReports(
   network: NetworkKey = DEFAULT_NETWORK
 ) {
   try {
-    // Use direct RPC — avoids wallet provider origin blocks
+    // Use direct RPC - avoids wallet provider origin blocks
     const readProvider = getReadProvider(network);
     const contract = getThreatRegistryContract(readProvider, network);
     return await contract.getAllReports(contractAddress);
