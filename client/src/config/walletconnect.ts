@@ -9,8 +9,6 @@ import {
     type AppKitNetwork,
 } from '@reown/appkit/networks';
 
-// Get a free Project ID at https://cloud.reown.com (takes ~2 min).
-// Without a real project ID, the WalletConnect modal will fail to open.
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string;
 
 if (!projectId) {
@@ -20,8 +18,6 @@ if (!projectId) {
     );
 }
 
-// BOTchain isn't a preset chain in @reown/appkit/networks, so we define it
-// manually using the same values already used in src/config/contracts.ts.
 const botchainMainnet = defineChain({
     id: 677,
     caipNetworkId: 'eip155:677',
@@ -50,7 +46,20 @@ const botchainTestnet = defineChain({
     },
 });
 
-// Mirrors SUPPORTED_NETWORKS in src/config/contracts.ts
+const xLayerMainnet = defineChain({
+    id: 196,
+    caipNetworkId: 'eip155:196',
+    chainNamespace: 'eip155',
+    name: 'X Layer',
+    nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+    rpcUrls: {
+        default: { http: ['https://rpc.xlayer.tech'] },
+    },
+    blockExplorers: {
+        default: { name: 'X Layer Explorer', url: 'https://web3.okx.com/explorer/x-layer/evm' },
+    },
+});
+
 export const appKitNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
     botchainMainnet,
     botchainTestnet,
@@ -58,6 +67,7 @@ export const appKitNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
     opBNBTestnet,
     baseSepolia,
     sepolia,
+    xLayerMainnet,
 ];
 
 const metadata = {

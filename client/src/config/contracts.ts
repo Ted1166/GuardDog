@@ -52,8 +52,8 @@ export const CONTRACT_ADDRESSES = {
   },
   // X Layer Mainnet
   xLayerMainnet: {
-    GuardianVault: '',
-    ThreatRegistry: '',
+    GuardianVault: '0x28A0CE9Cc5FCa7754d597164bf4FA993e9cCFA46',
+    ThreatRegistry: '0x417E98C978edf1802a17b948C44D7c9Ab5A1e5c4',
   },
 } as const;
 
@@ -81,28 +81,28 @@ export const NETWORKS = {
     blockExplorerUrls: ['https://testnet.opbnbscan.com'],
   },
   opBNBMainnet: {
-    chainId: '0xCC',        // 204
+    chainId: '0xCC',
     chainName: 'opBNB Mainnet',
     nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
     rpcUrls: ['https://opbnb-mainnet-rpc.bnbchain.org'],
     blockExplorerUrls: ['https://opbnbscan.com'],
   },
   baseSepolia: {
-    chainId: '0x14A34',     // 84532
+    chainId: '0x14A34',
     chainName: 'Base Sepolia',
     nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
     rpcUrls: ['https://sepolia.base.org'],
     blockExplorerUrls: ['https://sepolia.basescan.org'],
   },
   baseMainnet: {
-    chainId: '0x2105',      // 8453
+    chainId: '0x2105',
     chainName: 'Base',
     nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
     rpcUrls: ['https://mainnet.base.org'],
     blockExplorerUrls: ['https://basescan.org'],
   },
   sepolia: {
-    chainId: '0xAA36A7',    // 11155111
+    chainId: '0xAA36A7',
     chainName: 'Ethereum Sepolia',
     nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
     rpcUrls: ['https://rpc.sepolia.org'],
@@ -123,14 +123,14 @@ export const NETWORKS = {
     blockExplorerUrls: ['https://scan.botchain.ai'],
   },
   xLayerTestnet: {
-    chainId: '0x7A0',       // 1952
+    chainId: '0x7A0',
     chainName: 'X Layer Testnet',
     nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
     rpcUrls: ['https://testrpc.xlayer.tech/terigon'],
     blockExplorerUrls: ['https://web3.okx.com/explorer/x-layer-testnet'],
   },
   xLayerMainnet: {
-    chainId: '0xC4',        // 196
+    chainId: '0xC4',
     chainName: 'X Layer',
     nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
     rpcUrls: ['https://rpc.xlayer.tech'],
@@ -140,10 +140,6 @@ export const NETWORKS = {
 
 export type NetworkKey = keyof typeof NETWORKS;
 export const DEFAULT_NETWORK: NetworkKey = 'botchainMainnet';
-// Only networks with real deployed contract addresses are listed here —
-// bscMainnet/opBNBMainnet/baseMainnet have empty addresses in
-// CONTRACT_ADDRESSES (never actually deployed), so selecting them would
-// immediately throw "not yet deployed" in getContractAddress().
 export const SUPPORTED_NETWORKS: NetworkKey[] = [
   'botchainMainnet',
   'botchainTestnet',
@@ -152,9 +148,9 @@ export const SUPPORTED_NETWORKS: NetworkKey[] = [
   'baseSepolia',
   'sepolia',
   'xLayerTestnet',
+  'xLayerMainnet',
 ];
 
-// Chain ID → network key map (for auto-detection from MetaMask)
 export const CHAIN_ID_TO_NETWORK: Record<string, NetworkKey> = {
   '97': 'bscTestnet',
   '56': 'bscMainnet',
