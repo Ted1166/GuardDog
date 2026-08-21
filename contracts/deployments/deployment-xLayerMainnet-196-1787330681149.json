@@ -1,0 +1,12 @@
+{
+  "network": "xLayerMainnet",
+  "chainId": 196,
+  "deployer": "0xEbf4c54EDBc95201B28a648f4013480C463689e3",
+  "timestamp": "2026-08-21T16:44:41.148Z",
+  "gasUsed": "4651529",
+  "explorer": "https://web3.okx.com/explorer/x-layer/evm",
+  "contracts": {
+    "ThreatRegistry": "0x417E98C978edf1802a17b948C44D7c9Ab5A1e5c4",
+    "GuardianVault": "0x28A0CE9Cc5FCa7754d597164bf4FA993e9cCFA46"
+  }
+}

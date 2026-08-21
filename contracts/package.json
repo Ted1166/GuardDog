@@ -13,7 +13,9 @@
     "deploy:botchain-mainnet": "hardhat run scripts/deploy.js --network botchainMainnet",
     "verify": "hardhat verify --network bscTestnet",
     "node": "hardhat node",
-    "clean": "hardhat clean"
+    "clean": "hardhat clean",
+    "deploy:xlayer-testnet": "hardhat run scripts/deploy.js --network xLayerTestnet",
+    "deploy:xlayer-mainnet": "hardhat run scripts/deploy.js --network xLayerMainnet"
   },
   "keywords": [
     "ai",
